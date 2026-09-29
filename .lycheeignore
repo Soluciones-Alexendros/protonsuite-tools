@@ -2,4 +2,4 @@
 # npm devuelve 403 a bots/CI sin sesión; el badge/package link es correcto.
 https://www.npmjs.com/package/@alexendros/protonsuite-agent
 # GitHub release URLs may require auth in CI
-https://github.com/Iniciativas-Alexendros/protonsuite-tools/releases
+https://github.com/Soluciones-Alexendros/protonsuite-tools/releases

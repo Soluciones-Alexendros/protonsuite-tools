@@ -2,7 +2,7 @@
 
 - Estado: accepted
 - Fecha: 2026-09-24
-- Decisores: Alejandro · Iniciativas Alexendros
+- Decisores: Alejandro · Soluciones Alexendros
 - Etiquetas: arquitectura, ui, seguridad
 
 > Texto en formato MADR 4.0.0 · https://adr.github.io/madr/
