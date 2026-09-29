@@ -9,7 +9,7 @@ body:
       value: |
         Gracias por reportar. Antes de continuar, comprueba que no exista
         un issue similar en
-        https://github.com/Iniciativas-Alexendros/protonsuite-tools/issues.
+        https://github.com/Soluciones-Alexendros/protonsuite-tools/issues.
         Para vulnerabilidades de seguridad consulta `SECURITY.md` y NO uses
         este formulario.
   - type: input

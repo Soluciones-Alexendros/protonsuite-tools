@@ -2,7 +2,7 @@
 
 - Estado: accepted (blocking)
 - Fecha: 2026-06 — alineado con `PROTON_CALENDAR_ENABLED`
-- Decisores: Alejandro · Iniciativas Alexendros
+- Decisores: Alejandro · Soluciones Alexendros
 - Etiquetas: arquitectura, calendario, caldav, blocking
 
 > Texto en formato MADR 4.0.0 · https://adr.github.io/madr/

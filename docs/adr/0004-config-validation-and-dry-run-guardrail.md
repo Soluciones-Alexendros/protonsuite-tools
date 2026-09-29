@@ -2,7 +2,7 @@
 
 - Estado: accepted
 - Fecha: 2026-01 — reforzado 2026-07
-- Decisores: Alejandro · Iniciativas Alexendros
+- Decisores: Alejandro · Soluciones Alexendros
 - Etiquetas: arquitectura, configuración, seguridad, operacional
 
 > Texto en formato MADR 4.0.0 · https://adr.github.io/madr/

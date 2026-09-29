@@ -24,7 +24,7 @@ jobs:
     name: Integration (hosted skip-live / Bridge on demand)
     runs-on: ubuntu-24.04
     timeout-minutes: 15
-    if: github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request' || github.repository_owner == 'Iniciativas-Alexendros'
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request' || github.repository_owner == 'Soluciones-Alexendros'
     environment: ${{ github.event.inputs.bridge-real == 'true' && 'bridge-test' || '' }}
 
     steps:

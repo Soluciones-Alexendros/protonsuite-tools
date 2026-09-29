@@ -4,7 +4,7 @@ Lista de personas mantenedoras y áreas de responsabilidad.
 
 | Nombre | Rol | Áreas | Contacto |
 |--------|-----|-------|----------|
-| Alejandro · Iniciativas Alexendros | Mantenimiento principal | Todas | contacto@alexendros.me |
+| Alejandro · Soluciones Alexendros | Mantenimiento principal | Todas | contacto@alexendros.me |
 
 ## Cómo añadir una nueva persona mantenedora
 

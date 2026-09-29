@@ -2,7 +2,7 @@
 
 - Estado: accepted
 - Fecha: 2026-08-15
-- Decisores: Alejandro · Iniciativas Alexendros
+- Decisores: Alejandro · Soluciones Alexendros
 - Etiquetas: drive, backend, contingencia
 
 > Texto en formato MADR 4.0.0 · https://adr.github.io/madr/

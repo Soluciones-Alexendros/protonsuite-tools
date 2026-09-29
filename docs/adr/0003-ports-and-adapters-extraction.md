@@ -2,7 +2,7 @@
 
 - Estado: accepted
 - Fecha: 2026-07 — revisado 2026-08-15 (split `src/server/*` cerrado)
-- Decisores: Alejandro · Iniciativas Alexendros
+- Decisores: Alejandro · Soluciones Alexendros
 - Etiquetas: arquitectura, separación-de-capas, testabilidad
 
 > Texto en formato MADR 4.0.0 · https://adr.github.io/madr/
