@@ -1,0 +1,130 @@
+{
+  "$meta": {
+    "ds": "protonsuite",
+    "tier": "semantic",
+    "version": "1.0",
+    "$description": "Aliases con variantes light y dark. Referencias DTCG {grupo.token}."
+  },
+  "bg": {
+    "base": {
+      "$value": "{color.neutral.0}",
+      "$type": "color",
+      "$description": "Fondo de página",
+      "$extensions": { "mode": { "light": "{color.neutral.0}", "dark": "{color.neutral.950}" } }
+    },
+    "surface": {
+      "$value": "{color.neutral.50}",
+      "$type": "color",
+      "$description": "Fondo de tarjetas",
+      "$extensions": { "mode": { "light": "{color.neutral.50}", "dark": "{color.neutral.900}" } }
+    },
+    "muted": {
+      "$value": "{color.neutral.100}",
+      "$type": "color",
+      "$description": "Fondo atenuado",
+      "$extensions": { "mode": { "light": "{color.neutral.100}", "dark": "{color.neutral.800}" } }
+    }
+  },
+  "text": {
+    "base": {
+      "$value": "{color.neutral.900}",
+      "$type": "color",
+      "$description": "Texto principal",
+      "$extensions": { "mode": { "light": "{color.neutral.900}", "dark": "{color.neutral.0}" } }
+    },
+    "muted": {
+      "$value": "{color.neutral.600}",
+      "$type": "color",
+      "$description": "Texto secundario",
+      "$extensions": { "mode": { "light": "{color.neutral.600}", "dark": "{color.neutral.300}" } }
+    },
+    "link": {
+      "$value": "{color.brand.700}",
+      "$type": "color",
+      "$description": "Enlaces",
+      "$extensions": { "mode": { "light": "{color.brand.700}", "dark": "{color.brand.300}" } }
+    }
+  },
+  "border": {
+    "base": {
+      "$value": "{color.neutral.500}",
+      "$type": "color",
+      "$description": "Bordes (mínimo 3:1 de UI en claro y oscuro)",
+      "$extensions": { "mode": { "light": "{color.neutral.500}", "dark": "{color.neutral.400}" } }
+    },
+    "strong": {
+      "$value": "{color.neutral.600}",
+      "$type": "color",
+      "$extensions": { "mode": { "light": "{color.neutral.600}", "dark": "{color.neutral.300}" } }
+    }
+  },
+  "action": {
+    "primary-bg": {
+      "$value": "{color.brand.600}",
+      "$type": "color",
+      "$description": "Fondo de botón primario",
+      "$extensions": { "mode": { "light": "{color.brand.600}", "dark": "{color.brand.600}" } }
+    },
+    "primary-bg-hover": {
+      "$value": "{color.brand.700}",
+      "$type": "color",
+      "$description": "Fondo de botón primario al pasar",
+      "$extensions": { "mode": { "light": "{color.brand.700}", "dark": "{color.brand.700}" } }
+    },
+    "on-primary": {
+      "$value": "{color.neutral.0}",
+      "$type": "color",
+      "$description": "Texto sobre primario",
+      "$extensions": { "mode": { "light": "{color.neutral.0}", "dark": "{color.neutral.0}" } }
+    },
+    "secondary-bg": {
+      "$value": "{color.neutral.100}",
+      "$type": "color",
+      "$description": "Fondo de botón secundario",
+      "$extensions": { "mode": { "light": "{color.neutral.100}", "dark": "{color.neutral.800}" } }
+    },
+    "on-secondary": {
+      "$value": "{color.neutral.900}",
+      "$type": "color",
+      "$description": "Texto sobre secundario",
+      "$extensions": { "mode": { "light": "{color.neutral.900}", "dark": "{color.neutral.0}" } }
+    },
+    "focus-ring": {
+      "$value": "{color.focus.ring}",
+      "$type": "color",
+      "$description": "Anillo de foco"
+    }
+  },
+  "feedback": {
+    "success-bg": {
+      "$value": "{color.success.600}",
+      "$type": "color",
+      "$extensions": { "mode": { "light": "{color.success.600}", "dark": "{color.success.100}" } }
+    },
+    "success-text": {
+      "$value": "{color.neutral.0}",
+      "$type": "color",
+      "$extensions": { "mode": { "light": "{color.neutral.0}", "dark": "{color.neutral.950}" } }
+    },
+    "warning-bg": {
+      "$value": "{color.warning.600}",
+      "$type": "color",
+      "$extensions": { "mode": { "light": "{color.warning.600}", "dark": "{color.warning.100}" } }
+    },
+    "warning-text": {
+      "$value": "{color.neutral.0}",
+      "$type": "color",
+      "$extensions": { "mode": { "light": "{color.neutral.0}", "dark": "{color.neutral.950}" } }
+    },
+    "danger-bg": {
+      "$value": "{color.danger.600}",
+      "$type": "color",
+      "$extensions": { "mode": { "light": "{color.danger.600}", "dark": "{color.danger.100}" } }
+    },
+    "danger-text": {
+      "$value": "{color.neutral.0}",
+      "$type": "color",
+      "$extensions": { "mode": { "light": "{color.neutral.0}", "dark": "{color.neutral.950}" } }
+    }
+  }
+}

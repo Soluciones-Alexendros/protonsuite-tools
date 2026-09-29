@@ -1,0 +1,91 @@
+{
+  "$meta": {
+    "ds": "protonsuite",
+    "tier": "primitive",
+    "colorSpace": "oklch",
+    "spec": "W3C DTCG Format Module",
+    "version": "1.0"
+  },
+  "color": {
+    "brand": {
+      "100": {
+        "$value": "oklch(0.9 0.05 338)",
+        "$type": "color",
+        "$description": "Magenta claro — fondos tintados"
+      },
+      "200": { "$value": "oklch(0.83 0.08 338)", "$type": "color" },
+      "300": { "$value": "oklch(0.74 0.12 338)", "$type": "color" },
+      "400": { "$value": "oklch(0.64 0.15 338)", "$type": "color" },
+      "500": {
+        "$value": "oklch(0.55 0.17 338)",
+        "$type": "color",
+        "$description": "Magenta base de protonsuite"
+      },
+      "600": {
+        "$value": "oklch(0.48 0.16 338)",
+        "$type": "color",
+        "$description": "Acción — AA con texto claro"
+      },
+      "700": {
+        "$value": "oklch(0.41 0.14 338)",
+        "$type": "color",
+        "$description": "Enlaces y texto de marca"
+      },
+      "800": { "$value": "oklch(0.34 0.11 338)", "$type": "color" },
+      "900": { "$value": "oklch(0.28 0.08 338)", "$type": "color" }
+    },
+    "neutral": {
+      "0": { "$value": "oklch(1 0 0)", "$type": "color", "$description": "Papel" },
+      "50": { "$value": "oklch(0.97 0.005 305)", "$type": "color" },
+      "100": { "$value": "oklch(0.93 0.01 305)", "$type": "color" },
+      "200": { "$value": "oklch(0.87 0.015 305)", "$type": "color" },
+      "300": { "$value": "oklch(0.79 0.02 305)", "$type": "color" },
+      "400": { "$value": "oklch(0.68 0.025 305)", "$type": "color" },
+      "500": { "$value": "oklch(0.56 0.03 305)", "$type": "color" },
+      "600": { "$value": "oklch(0.45 0.03 305)", "$type": "color" },
+      "700": { "$value": "oklch(0.36 0.025 305)", "$type": "color" },
+      "800": { "$value": "oklch(0.3 0.02 305)", "$type": "color" },
+      "900": {
+        "$value": "oklch(0.25 0.015 305)",
+        "$type": "color",
+        "$description": "Tinta — texto sobre claro"
+      },
+      "950": { "$value": "oklch(0.19 0.01 305)", "$type": "color" },
+      "1000": { "$value": "oklch(0 0 0)", "$type": "color", "$description": "Negro" }
+    },
+    "success": {
+      "100": { "$value": "oklch(0.9 0.06 158)", "$type": "color" },
+      "600": {
+        "$value": "oklch(0.50 0.15 158)",
+        "$type": "color",
+        "$description": "Éxito — AA sobre papel"
+      },
+      "700": { "$value": "oklch(0.45 0.13 158)", "$type": "color" }
+    },
+    "warning": {
+      "100": { "$value": "oklch(0.92 0.06 72)", "$type": "color" },
+      "600": { "$value": "oklch(0.6 0.14 72)", "$type": "color", "$description": "Aviso" },
+      "700": {
+        "$value": "oklch(0.48 0.12 72)",
+        "$type": "color",
+        "$description": "Aviso texto"
+      }
+    },
+    "danger": {
+      "100": { "$value": "oklch(0.9 0.05 12)", "$type": "color" },
+      "600": {
+        "$value": "oklch(0.5 0.18 12)",
+        "$type": "color",
+        "$description": "Peligro — AA sobre papel"
+      },
+      "700": { "$value": "oklch(0.42 0.16 12)", "$type": "color" }
+    },
+    "focus": {
+      "ring": {
+        "$value": "oklch(0.6 0.18 338)",
+        "$type": "color",
+        "$description": "Anillo de foco visible"
+      }
+    }
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "$meta": { "ds": "protonsuite", "tier": "component", "version": "1.0" },
+  "button": {
+    "primary-bg": { "$value": "{action.primary-bg}", "$type": "color" },
+    "primary-bg-hover": { "$value": "{action.primary-bg-hover}", "$type": "color" },
+    "on-primary": { "$value": "{action.on-primary}", "$type": "color" },
+    "secondary-bg": { "$value": "{action.secondary-bg}", "$type": "color" },
+    "on-secondary": { "$value": "{action.on-secondary}", "$type": "color" },
+    "radius": { "$value": "{radius.md}", "$type": "borderRadius" },
+    "padding-x": { "$value": "{space.4}", "$type": "dimension" },
+    "padding-y": { "$value": "{space.2}", "$type": "dimension" },
+    "focus-ring": { "$value": "{action.focus-ring}", "$type": "color" }
+  },
+  "card": {
+    "bg": { "$value": "{bg.surface}", "$type": "color" },
+    "border": { "$value": "{border.strong}", "$type": "color" },
+    "radius": { "$value": "{radius.lg}", "$type": "borderRadius" },
+    "padding": { "$value": "{space.6}", "$type": "dimension" },
+    "shadow": { "$value": "{shadow.md}", "$type": "shadow" }
+  },
+  "input": {
+    "bg": { "$value": "{bg.base}", "$type": "color" },
+    "border": { "$value": "{border.strong}", "$type": "color" },
+    "border-focus": { "$value": "{color.brand.500}", "$type": "color" },
+    "radius": { "$value": "{radius.md}", "$type": "borderRadius" },
+    "padding-x": { "$value": "{space.3}", "$type": "dimension" },
+    "padding-y": { "$value": "{space.2}", "$type": "dimension" }
+  }
+}

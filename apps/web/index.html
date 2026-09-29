@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>protonsuite — herramientas locales</title>
+    <meta
+      name="description"
+      content="Herramientas MCP y CLI para Proton. Landing y panel de estado con datos de ejemplo, sin Bridge."
+    />
+    <script>
+      (function () {
+        try {
+          var choice = localStorage.getItem("protonsuite-theme");
+          var dark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+          var mode = choice === "light" || choice === "dark" ? choice : dark ? "dark" : "light";
+          document.documentElement.setAttribute("data-theme", mode);
+        } catch (err) {
+          document.documentElement.setAttribute("data-theme", "light");
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <noscript>
+      <p>Esta página necesita JavaScript para mostrar la landing y el panel. No envía datos ni pide credenciales.</p>
+    </noscript>
+    <div id="app"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

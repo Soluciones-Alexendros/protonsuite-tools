@@ -7,7 +7,7 @@ export default {
     ]],
     "scope-enum": [2, "always", [
       "imap", "smtp", "http", "agent", "alerts", "pass",
-      "config", "deps", "release", "ci", "docs", "tests",
+      "config", "deps", "release", "ci", "docs", "tests", "web",
     ]],
   },
 };

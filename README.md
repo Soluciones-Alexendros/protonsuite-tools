@@ -186,6 +186,10 @@ docker compose up -d
 
 Ver [`docs/deployment-http-docker.md`](./docs/deployment-http-docker.md). Instalador: [`scripts/install.sh`](./scripts/install.sh).
 
+## Interfaz local
+
+SPA estática en [`apps/web`](./apps/web) ([ADR-0007](./docs/adr/0007-spa-local-estatica.md)): landing y panel de estado. No forma parte del proceso MCP. `pnpm run build` la genera en `apps/web/dist`. Se abre sin Bridge; el panel usa el adaptador local «datos de ejemplo» y no pide credenciales. Calendar sigue en stub.
+
 ---
 
 ## Documentación
@@ -221,7 +225,7 @@ make validate        # lint + typecheck + test + build + smoke
 pnpm run typecheck   # TypeScript strict
 pnpm test            # Vitest (953+)
 pnpm run coverage    # Coverage v8 — gate 95%, objetivo ≥98%
-pnpm run build       # tsc → dist/
+pnpm run build       # tsc → dist/ y SPA apps/web (tokens, contraste, vite)
 pnpm run smoke       # stdio initialize + tools/list
 pnpm run knip        # Unused deps/exports
 pnpm docs:check      # mcp-tools.md en sync

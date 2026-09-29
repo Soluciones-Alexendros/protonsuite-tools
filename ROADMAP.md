@@ -37,6 +37,7 @@ Transforma el estado del producto en unidades de trabajo. Cada fase tiene objeti
 - Cada tarea DEBE caber en la ficha de [AGENTS.md](./AGENTS.md) § Unidad de trabajo.
 - Ninguna fase se cierra con deuda crítica de seguridad, tests o documentación viva contradictoria.
 - Calendar contra Proton permanece bloqueado (ADR-005) hasta CalDAV en Bridge.
+- La SPA local estática de `apps/web` (landing y panel de estado, sin Bridge ni secretos) está autorizada por [ADR-0007](./docs/adr/0007-spa-local-estatica.md).
 - Drive OAuth / API no es el path activo; el backend es `proton-drive` CLI (ADR-006).
 - Tamaño relativo: S / M / L.
 

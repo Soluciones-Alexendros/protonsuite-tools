@@ -1,4 +1,5 @@
 # Fachada canónica (repo-standard P1). El stack real es pnpm.
+# `pnpm run build` compila el agente (tsc) y la SPA apps/web (tokens, contraste, vite).
 # Uso: make lint | make test | make smoke | make validate
 .PHONY: lint test smoke build validate
 

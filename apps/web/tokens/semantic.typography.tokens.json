@@ -1,0 +1,41 @@
+{
+  "$meta": { "ds": "protonsuite", "tier": "semantic", "version": "1.0" },
+  "font": {
+    "sans": {
+      "$value": "system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, sans-serif",
+      "$type": "fontFamily",
+      "$description": "Pila de flota (igual en neubat/webconfig/askartask/zedazo). Sin webfonts."
+    },
+    "mono": {
+      "$value": "ui-monospace, \"Fira Code\", Consolas, monospace",
+      "$type": "fontFamily"
+    },
+    "weight": {
+      "regular": { "$value": "400", "$type": "fontWeight" },
+      "medium": { "$value": "500", "$type": "fontWeight" },
+      "semibold": { "$value": "600", "$type": "fontWeight" },
+      "bold": { "$value": "700", "$type": "fontWeight" }
+    },
+    "size": {
+      "caption": { "$value": "0.875rem", "$type": "fontSize" },
+      "body": { "$value": "clamp(1rem, 0.95rem + 0.25vw, 1.125rem)", "$type": "fontSize" },
+      "lead": { "$value": "1.125rem", "$type": "fontSize" },
+      "h6": { "$value": "1rem", "$type": "fontSize" },
+      "h5": { "$value": "1.125rem", "$type": "fontSize" },
+      "h4": { "$value": "clamp(1.25rem, 1.1rem + 0.75vw, 1.5rem)", "$type": "fontSize" },
+      "h3": { "$value": "clamp(1.5rem, 1.3rem + 1vw, 1.875rem)", "$type": "fontSize" },
+      "h2": { "$value": "clamp(1.875rem, 1.6rem + 1.4vw, 2.25rem)", "$type": "fontSize" },
+      "h1": { "$value": "clamp(2.25rem, 1.8rem + 2.2vw, 3rem)", "$type": "fontSize" }
+    },
+    "leading": {
+      "tight": { "$value": "1.2", "$type": "lineHeight" },
+      "base": { "$value": "1.5", "$type": "lineHeight" },
+      "relaxed": { "$value": "1.65", "$type": "lineHeight" }
+    },
+    "tracking": {
+      "tight": { "$value": "-0.02em", "$type": "letterSpacing" },
+      "base": { "$value": "0", "$type": "letterSpacing" },
+      "wide": { "$value": "0.04em", "$type": "letterSpacing" }
+    }
+  }
+}

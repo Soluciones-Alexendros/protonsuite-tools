@@ -1,0 +1,70 @@
+{
+  "$meta": { "ds": "protonsuite", "tier": "primitive", "version": "1.0" },
+  "space": {
+    "0": { "$value": "0", "$type": "dimension" },
+    "1": { "$value": "0.25rem", "$type": "dimension", "$description": "4pt base" },
+    "2": { "$value": "0.5rem", "$type": "dimension" },
+    "3": { "$value": "0.75rem", "$type": "dimension" },
+    "4": { "$value": "1rem", "$type": "dimension" },
+    "5": { "$value": "1.25rem", "$type": "dimension" },
+    "6": { "$value": "1.5rem", "$type": "dimension" },
+    "8": { "$value": "2rem", "$type": "dimension" },
+    "10": { "$value": "2.5rem", "$type": "dimension" },
+    "12": { "$value": "3rem", "$type": "dimension" },
+    "16": { "$value": "4rem", "$type": "dimension" }
+  },
+  "radius": {
+    "none": { "$value": "0", "$type": "borderRadius" },
+    "sm": { "$value": "0.25rem", "$type": "borderRadius" },
+    "md": { "$value": "0.5rem", "$type": "borderRadius" },
+    "lg": { "$value": "1rem", "$type": "borderRadius" },
+    "full": { "$value": "999px", "$type": "borderRadius" }
+  },
+  "border": {
+    "width": {
+      "thin": { "$value": "1px", "$type": "borderWidth" },
+      "medium": { "$value": "2px", "$type": "borderWidth" },
+      "thick": { "$value": "4px", "$type": "borderWidth" }
+    }
+  },
+  "shadow": {
+    "sm": {
+      "$value": "0 1px 2px oklch(0.22 0.03 338 / 0.1)",
+      "$type": "shadow",
+      "$description": "Elevación sutil"
+    },
+    "md": {
+      "$value": "0 4px 12px oklch(0.22 0.03 338 / 0.14)",
+      "$type": "shadow"
+    },
+    "lg": {
+      "$value": "0 12px 32px oklch(0.22 0.03 338 / 0.18)",
+      "$type": "shadow"
+    },
+    "none": { "$value": "none", "$type": "shadow" }
+  },
+  "motion": {
+    "duration": {
+      "fast": { "$value": "120ms", "$type": "duration" },
+      "base": { "$value": "200ms", "$type": "duration" },
+      "slow": { "$value": "320ms", "$type": "duration" }
+    },
+    "easing": {
+      "out": { "$value": "cubic-bezier(0.16, 1, 0.3, 1)", "$type": "cubicBezier" }
+    }
+  },
+  "z": {
+    "0": { "$value": "0", "$type": "number" },
+    "10": { "$value": "10", "$type": "number" },
+    "20": { "$value": "20", "$type": "number" },
+    "30": { "$value": "30", "$type": "number" },
+    "40": { "$value": "40", "$type": "number" },
+    "50": { "$value": "50", "$type": "number" }
+  },
+  "breakpoint": {
+    "sm": { "$value": "36rem", "$type": "dimension", "$description": "576px" },
+    "md": { "$value": "48rem", "$type": "dimension", "$description": "768px" },
+    "lg": { "$value": "62rem", "$type": "dimension", "$description": "992px" },
+    "xl": { "$value": "75rem", "$type": "dimension", "$description": "1200px" }
+  }
+}

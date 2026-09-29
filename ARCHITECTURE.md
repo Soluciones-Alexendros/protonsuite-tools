@@ -29,6 +29,7 @@ negociable está en [CONSTITUTION.md](./CONSTITUTION.md). ADRs en `docs/adr/`:
 - ADR-004: validación de config + dry-run por defecto.
 - ADR-005: Calendar CalDAV stub (bloqueado en Bridge).
 - ADR-006: Drive vía CLI `proton-drive` + plan de fallback.
+- ADR-007: SPA local estática en `apps/web` (landing + panel; sin Bridge embebido).
 
 ## 1. Propósito
 
@@ -54,6 +55,8 @@ Proton Mail Bridge ── FRONTERA E2E ──  ~/.password-store  ~/.config/prot
         ▼
 Servidores Proton (cifrado E2E)
 ```
+
+`apps/web` es una SPA estática aparte ([ADR-007](./docs/adr/0007-spa-local-estatica.md)): landing y panel de estado con datos de ejemplo. No se importa desde `src/index.ts`, no escribe en stdout y no embebe Bridge ni CalDAV.
 
 ## 3. Módulos (`src/`)
 
@@ -117,6 +120,7 @@ Red `proton-net` interna; `proxy-network` externa. En producción,
 - No clasificación en LLMs externos por defecto.
 - No mutaciones autónomas sin dry-run / HITL.
 - No CalDAV contra Proton hasta Bridge (ADR-005).
+- No embeber Bridge ni secretos en la SPA estática (ADR-007).
 - No OAuth Drive en este agente (ADR-006).
 
 ## 7. Amenazas (resumen)

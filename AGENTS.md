@@ -90,6 +90,7 @@ tests/                # Unit; **/*.integration.ts; **/*.e2e.ts
 docs/                 # ADRs, api/, guías, security/, archive/
                       # + architecture/, guides/, runbooks/ (fachadas canónicas)
 playbooks/            # Workflows humanos + prompts (runbooks vivos).
+apps/web/             # SPA estática Vite (ADR-0007). Fuera del proceso MCP.
 ```
 
 ## How to build, run, test
@@ -112,7 +113,7 @@ make validate           # fachada canónica: lint + typecheck + test + build + s
 - **ESLint** flat (`eslint.config.mjs`). Zero errors. Named exports.
 - **Commits:** Conventional Commits + commitlint. Scopes: `imap`, `smtp`,
   `http`, `agent`, `alerts`, `pass`, `config`, `deps`, `release`, `ci`, `docs`,
-  `tests`, `ecosystem`, `calendar`, `drive`, `bridge`, `security`.
+  `tests`, `ecosystem`, `calendar`, `drive`, `bridge`, `security`, `web`.
 - **Branches:** `feat/`, `fix/`, `docs/`, `chore/`, `refactor/`, `agent/`;
   rebase onto `main`; squash-merge.
 - **exactOptionalPropertyTypes** + **noUncheckedIndexedAccess** ON.

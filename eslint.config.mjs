@@ -25,7 +25,7 @@ const sharedRules = {
 };
 
 export default tseslint.config(
-  { ignores: ["dist/", "node_modules/", "coverage/", ".husky/", "eslint.config.mjs", "commitlint.config.mjs", "knip.config.mjs", "vitest.config.ts", "vitest.e2e.config.ts"] },
+  { ignores: ["dist/", "node_modules/", "coverage/", ".husky/", "apps/web/", "eslint.config.mjs", "commitlint.config.mjs", "knip.config.mjs", "vitest.config.ts", "vitest.e2e.config.ts"] },
   js.configs.recommended,
 
   // src/ files — main tsconfig

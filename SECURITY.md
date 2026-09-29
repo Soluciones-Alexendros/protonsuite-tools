@@ -117,4 +117,5 @@ This project follows the following baseline for open-source AI agents that opera
 - An attacker who controls the **Bridge host** itself (OS-level access) can read the vault.
 - An attacker who **steals both your Proton Mail account password AND the Bridge mailbox password** can impersonate you regardless of this agent.
 - The **E2E encryption guarantee of Proton stops at the Bridge boundary** — anything downstream (this agent, the MCP server, any dashboard) operates on plaintext by design.
+- The static SPA in `apps/web` (ADR-0007) shows example data only. It must not embed Bridge credentials, Pass values, or mailbox bodies, and it is not a control plane.
 - The agent is a classifier and workflow helper, not a legal or compliance advisor. Operator is responsible for final decisions on sensitive categories (legal, fiscal, health, official communications).

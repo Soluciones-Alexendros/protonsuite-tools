@@ -16,7 +16,7 @@ Abrir cuando: Buscas una guía, ADR o informe sin saber la ruta.
 | [`architecture/`](./architecture/) | Fachada canónica → [`ARCHITECTURE.md`](../ARCHITECTURE.md) + ADRs |
 | [`guides/`](./guides/) | Fachada canónica de guías operativas |
 | [`runbooks/`](./runbooks/) | Fachada canónica → [`playbooks/`](../playbooks/) |
-| [`adr/`](./adr/) | Decisiones MADR (0001–0006) |
+| [`adr/`](./adr/) | Decisiones MADR (0001–0007) |
 | [`api/mcp-tools.md`](./api/mcp-tools.md) | Contrato MCP generado (`pnpm docs:generate`) |
 | Guías (raíz de `docs/`) | Quickstarts, Bridge, deploy, Drive, alertas, KB |
 | [`security/`](./security/) | Informes de auditoría FASE1/FASE2 |

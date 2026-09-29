@@ -17,3 +17,6 @@ coverage/
 
 .cursor/
 .npmrc.bootstrap
+apps/web/dist/
+apps/web/dist-tokens/
+apps/web/src/styles/generated-tokens.css

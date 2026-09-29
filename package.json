@@ -53,11 +53,11 @@
     "document-management"
   ],
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && pnpm --filter @alexendros/protonsuite-web run build",
     "start": "node dist/index.js",
     "dev": "tsc --watch",
     "inspect": "npx @modelcontextprotocol/inspector node dist/index.js",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && pnpm --filter @alexendros/protonsuite-web run typecheck",
     "test": "vitest run",
     "coverage": "vitest run --coverage && bash scripts/update-coverage-badge.sh --skip-run",
     "coverage:badge": "bash scripts/update-coverage-badge.sh",
