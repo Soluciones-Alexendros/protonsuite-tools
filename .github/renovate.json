@@ -1,8 +1,8 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "local>Iniciativas-Alexendros/infraestructura-stack:renovate-presets/default",
-    "local>Iniciativas-Alexendros/infraestructura-stack:renovate-presets/node"
+    "local>Soluciones-Alexendros/infraestructura-stack:renovate-presets/default",
+    "local>Soluciones-Alexendros/infraestructura-stack:renovate-presets/node"
   ],
   "timezone": "Europe/Madrid",
   "schedule": ["before 5am on Monday"],

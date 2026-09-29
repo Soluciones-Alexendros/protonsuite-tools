@@ -2,7 +2,7 @@
 
 - Estado: proposed | accepted | superseded | rejected | deprecated
 - Fecha: YYYY-MM-DD
-- Decisores: Alejandro · Iniciativas Alexendros
+- Decisores: Alejandro · Soluciones Alexendros
 - Etiquetas: …
 
 > Texto en formato MADR 4.0.0 · https://adr.github.io/madr/

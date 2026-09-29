@@ -2,7 +2,7 @@
 
 - Estado: accepted
 - Fecha: 2026-01 — revisado 2026-07 (working-tree refactor a `src/server/*.ts`)
-- Decisores: Alejandro · Iniciativas Alexendros
+- Decisores: Alejandro · Soluciones Alexendros
 - Etiquetas: arquitectura, transporte, seguridad
 
 > Texto en formato MADR 4.0.0 · https://adr.github.io/madr/

@@ -1,11 +1,11 @@
 blank_issues_enabled: false
 contact_links:
   - name: 🔒 Security vulnerability
-    url: https://github.com/Iniciativas-Alexendros/protonsuite-tools/security/advisories/new
+    url: https://github.com/Soluciones-Alexendros/protonsuite-tools/security/advisories/new
     about: Report a vulnerability privately via GitHub Security Advisories. Do NOT open a public issue.
   - name: 📧 Security e-mail
     url: mailto:security@alexendros.me
     about: Alternative private channel for security reports. See SECURITY.md for the full threat model.
   - name: 💬 Questions / discussion
-    url: https://github.com/Iniciativas-Alexendros/protonsuite-tools/discussions
+    url: https://github.com/Soluciones-Alexendros/protonsuite-tools/discussions
     about: Open-ended questions, configuration help, or feedback. The issue tracker is for actionable bugs and feature requests only.
