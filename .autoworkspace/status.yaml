@@ -3,10 +3,10 @@
 # La fase del pipeline describe el trabajo EN CURSO. El plan de cierre se lleva
 # aparte, en tasks/todo.md, que es la fuente de verdad de las fases P00..P11.
 schema_version: 1
-version: 0.2.0
-phase: IMPLEMENT
-advance: 2
-last_skill: plan-specification
+version: 0.3.0
+phase: VALIDATE
+advance: 3
+last_skill: plan-validation
 checksum_spec: ""
 updated_at: "2026-10-17T00:00:00Z"
 history:
@@ -28,3 +28,9 @@ history:
     skill: plan-specification
     at: "2026-10-17T00:00:00Z"
     note: "P02 autorizacion completa (F03, F42, F43, F06) + ADR-0009."
+  - advance: 3
+    version: 0.3.0
+    phase: VALIDATE
+    skill: plan-validation
+    at: "2026-10-17T00:00:00Z"
+    note: "P03: sandbox de ficheros (F05) y recorrido/hash acotados (F25)."
