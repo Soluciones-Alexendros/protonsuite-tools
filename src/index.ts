@@ -73,15 +73,11 @@ async function main(): Promise<void> {
     process.exit(2)
   }
 
-  if (
-    process.env['NODE_ENV'] === 'production' &&
-    cfg.transport.allowedOrigins.length === 0
-  ) {
-    process.stderr.write(
-      '[FATAL] HTTP mode in production requires MCP_ALLOWED_ORIGINS to be set\n',
-    )
-    process.exit(2)
-  }
+  // Antes, exigir `MCP_ALLOWED_ORIGINS` dependía de `NODE_ENV`: el mismo código
+  // se comportaba distinto según una variable de entorno, y en local no
+  // comprobaba nada. Eso ya no hace falta: la comprobación de `Host` es
+  // siempre, y un `Origin` presente sin allowlist se rechaza en vez de darse
+  // por bueno (hallazgo F27). El control no depende del entorno.
 
   // UN juego de clientes para todo el proceso. Antes se construía `shared`
   // (que solo se usaba para cerrar) y además cada sesión creaba los suyos

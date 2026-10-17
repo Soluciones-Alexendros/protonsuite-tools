@@ -130,8 +130,9 @@ Evidencia recogida para la decisión:
       tope de salida, cancelación y `stdin` SIEMPRE cerrado
 - [x] P04-O01 ownership (F19): un solo juego de clientes por proceso, inyectado
       en cada sesión; `dispose()` cierra sesiones con deadline
-- [ ] P04: F23 (cupos explícitos de sesión/concurrencia) y F27 (validación de
-      Host) siguen abiertos
+- [x] P04-O02 (segunda parte): F23 (cupo de sesiones y de peticiones en curso) y
+      F27 (validación de `Host` siempre, `Origin` presente sin allowlist
+      rechazado, y fuera la dependencia de `NODE_ENV`)
 
 ## P05 — Integraciones reales (PR-05..07) · `proposed`
 - P05-O01 Bridge y TLS (F12–F15, F34) · P05-O02 backends de secretos (F07–F11)

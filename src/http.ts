@@ -26,7 +26,11 @@ import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import express, { type Express, type Request, type Response, type NextFunction } from "express";
 import { rateLimit, ipKeyGenerator } from "express-rate-limit";
 import { compareTokens, extractBearer, MIN_TOKEN_LENGTH } from "./auth.js";
-import type { Config } from "./config.js";
+import {
+  DEFAULT_MAX_CONCURRENT_REQUESTS,
+  DEFAULT_MAX_SESSIONS,
+  type Config,
+} from "./config.js";
 import { getToolRateClass } from "./http-tool-rate.js";
 import {
   registry as metricsRegistry,
@@ -97,6 +101,7 @@ export function buildHttpApp(deps: HttpAppDeps): HttpApp {
   const { buildServer, cfg, log } = deps;
   const expectedToken = cfg.transport.authToken ?? "";
   const allowedOrigins = new Set(cfg.transport.allowedOrigins);
+  const allowedHosts = resolveAllowedHosts(cfg);
 
   if (expectedToken.length === 0) {
     throw new Error(
@@ -253,14 +258,41 @@ export function buildHttpApp(deps: HttpAppDeps): HttpApp {
 
   app.use("/mcp", preAuthLimiter, authMiddleware, express.json({ limit: JSON_BODY_LIMIT }), instrumentacion, tieredRateLimit);
 
+  /** Peticiones en curso. Es un cupo de trabajo, no un contador de tráfico. */
+  let enCurso = 0;
+
   app.all("/mcp", async (req: Request, res: Response) => {
     const sessionId = (req.headers["mcp-session-id"] as string | undefined) ?? undefined;
+
+    if (enCurso >= (cfg.transport.maxConcurrentRequests ?? DEFAULT_MAX_CONCURRENT_REQUESTS)) {
+      res.status(503).json({
+        jsonrpc: "2.0",
+        error: { code: -32000, message: "server_busy" },
+        id: null,
+      });
+      return;
+    }
+    enCurso++;
+    res.on("close", () => {
+      enCurso--;
+    });
+
     try {
       const entry = sessionId ? sessions.get(sessionId) : undefined;
 
       // Caso 1: request sin sesión válida pero con body `initialize` →
       // creamos transport + server nuevos y los registramos al terminar.
       if (!entry && req.method === "POST" && isInitializeRequest(req.body)) {
+        // Cupo de sesiones: sin él, un cliente puede abrir tantas como quiera y
+        // el mapa crece sin freno (hallazgo F23).
+        if (sessions.size >= (cfg.transport.maxSessions ?? DEFAULT_MAX_SESSIONS)) {
+          res.status(503).json({
+            jsonrpc: "2.0",
+            error: { code: -32000, message: "too_many_sessions" },
+            id: null,
+          });
+          return;
+        }
         const transport = new StreamableHTTPServerTransport({
           sessionIdGenerator: () => randomUUID(),
           onsessioninitialized: (id) => {
@@ -362,9 +394,25 @@ export function buildHttpApp(deps: HttpAppDeps): HttpApp {
    *  2. Bearer comparado timing-safe (ver `auth.ts`). Fail-closed.
    */
   function authMiddleware(req: Request, res: Response, next: NextFunction): void {
+    // 0. Host. Va ANTES que nada: si el nombre no es el nuestro, no hay nada
+    // más que hablar. Es lo que frena el DNS rebinding (hallazgo F27).
+    const host = req.headers.host ?? "";
+    if (!allowedHosts.has(hostnameOf(host))) {
+      res.status(403).json({ error: "host_not_allowed" });
+      return;
+    }
+
     const origin = req.headers.origin;
-    if (origin && allowedOrigins.size > 0 && !allowedOrigins.has(origin)) {
-      res.status(403).json({ error: "origin_not_allowed" });
+    if (origin && !allowedOrigins.has(origin)) {
+      // Un navegador SIEMPRE manda Origin. Si no hay allowlist, no podemos
+      // saber si la página es de fiar, así que se rechaza en vez de darla por
+      // buena (hallazgo F27: no tratar la ausencia de control como permiso).
+      // Los clientes de línea de comandos y los backends no mandan Origin, así
+      // que no les afecta.
+      res.status(403).json({
+        error: "origin_not_allowed",
+        hint: "Configura MCP_ALLOWED_ORIGINS con el origen exacto de tu cliente web.",
+      });
       return;
     }
     const token = extractBearer(req.headers.authorization);
@@ -374,4 +422,43 @@ export function buildHttpApp(deps: HttpAppDeps): HttpApp {
     }
     next();
   }
+}
+
+/**
+ * Nombres de host que se aceptan en la cabecera `Host`.
+ *
+ * Se compara el NOMBRE, no `host:puerto`: el puerto real puede no ser el
+ * configurado —un proxy delante, o un puerto efímero en las pruebas— y eso no
+ * cambia quién es el servidor.
+ *
+ * Sin esta comprobación, cualquier nombre que resuelva a esta máquina colaría:
+ * es el truco del «DNS rebinding», donde una página web maliciosa apunta un
+ * dominio suyo a 127.0.0.1 y habla con el servidor local (hallazgo F27).
+ *
+ * Si el operador declara `MCP_ALLOWED_HOSTS`, mandan esos. Si no, se derivan del
+ * host configurado más las formas de bucle local. Al escuchar en todas las
+ * interfaces (`0.0.0.0`) hay que declararlos: no se puede adivinar por qué
+ * nombre te van a llamar.
+ */
+function resolveAllowedHosts(cfg: Config): Set<string> {
+  const declarados = cfg.transport.allowedHosts ?? [];
+  if (declarados.length > 0) {
+    return new Set(declarados.map((h) => hostnameOf(h)));
+  }
+
+  const hosts = new Set<string>(["localhost", "127.0.0.1", "::1"]);
+  const configurado = hostnameOf(cfg.transport.httpHost);
+  // `0.0.0.0` y `::` son direcciones para ESCUCHAR, no nombres por los que te
+  // llaman: no se añaden.
+  if (configurado !== "0.0.0.0" && configurado !== "::") hosts.add(configurado);
+  return hosts;
+}
+
+/** Extrae el nombre de `host:puerto`, `[::1]:8787` o `[::1]`. */
+export function hostnameOf(value: string): string {
+  const ipv6 = /^\[([^\]]+)\](?::\d+)?$/.exec(value);
+  if (ipv6) return ipv6[1] ?? value;
+  const idx = value.lastIndexOf(":");
+  if (idx > 0 && /^\d+$/.test(value.slice(idx + 1))) return value.slice(0, idx);
+  return value;
 }
