@@ -37,6 +37,9 @@ import {
 } from "./utils/metrics.js";
 import { VERSION } from "./version.js";
 
+/** Tiempo máximo que se espera a cerrar sesiones antes de seguir. */
+const SHUTDOWN_DEADLINE_MS = 5_000;
+
 /** Tamaño máximo del cuerpo JSON-RPC. Se aplica ya autenticado. */
 const JSON_BODY_LIMIT = "25mb";
 
@@ -78,7 +81,19 @@ export interface HttpAppDeps {
  * la genera el SDK en el `initialize` y viaja en el header `Mcp-Session-Id` en
  * cada request siguiente.
  */
-export function buildHttpApp(deps: HttpAppDeps): Express {
+/**
+ * App de Express con una salida ordenada.
+ *
+ * Se devuelve la app tal cual (supertest y `app.listen` siguen funcionando) con
+ * un método añadido: `dispose()`. Cerrar sesiones y transportes antes de salir
+ * evita dejar sockets colgando (hallazgo F19).
+ */
+export interface HttpApp extends Express {
+  /** Cierra el temporizador y todas las sesiones, con deadline. */
+  dispose: () => Promise<void>;
+}
+
+export function buildHttpApp(deps: HttpAppDeps): HttpApp {
   const { buildServer, cfg, log } = deps;
   const expectedToken = cfg.transport.authToken ?? "";
   const allowedOrigins = new Set(cfg.transport.allowedOrigins);
@@ -301,7 +316,7 @@ export function buildHttpApp(deps: HttpAppDeps): Express {
   // Eviction de sesiones idle. `setInterval().unref()` permite al proceso
   // salir limpiamente aunque el timer esté activo (no bloquea el event loop
   // al cerrar).
-  setInterval(() => {
+  const evictionTimer = setInterval(() => {
     const now = Date.now();
     const idleTimeout = 30 * 60 * 1000;
     for (const [id, entry] of sessions) {
@@ -311,9 +326,32 @@ export function buildHttpApp(deps: HttpAppDeps): Express {
         log.debug("Evicted idle session", { id });
       }
     }
-  }, 60_000).unref();
+  }, 60_000);
+  evictionTimer.unref();
 
-  return app;
+  /**
+   * Cierra todo lo que abrió esta app.
+   *
+   * El deadline importa: un transporte que no responde no debe impedir que el
+   * proceso termine. Se intenta cerrar bien y, si no llega, se sigue.
+   */
+  async function dispose(): Promise<void> {
+    clearInterval(evictionTimer);
+    const cierres: Promise<unknown>[] = [];
+    for (const [id, entry] of sessions) {
+      sessions.delete(id);
+      cierres.push(
+        Promise.resolve(entry.transport.close()).catch(() => { /* noop */ }),
+      );
+    }
+    const deadline = new Promise<void>((resolve) => {
+      const t = setTimeout(resolve, SHUTDOWN_DEADLINE_MS);
+      t.unref();
+    });
+    await Promise.race([Promise.allSettled(cierres), deadline]);
+  }
+
+  return Object.assign(app, { dispose });
 
   /**
    * Auth middleware. Orden y efectos:

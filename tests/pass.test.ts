@@ -39,7 +39,9 @@ const hoisted = vi.hoisted(() => {
     return {
       stdout: { on: (_e: string, h: (d: string) => void) => { dataHandler = h } },
       stderr: { on: (_e: string, h: (d: string) => void) => { stderrHandler = h } },
-      stdin: { write: stdinWrite, end: stdinEnd },
+      // `on` hace falta porque el supervisor escucha EPIPE al cerrar stdin.
+      stdin: { write: stdinWrite, end: stdinEnd, on: vi.fn() },
+      kill: vi.fn(),
       on: (_e: string, h: ((code: number) => void) | ((err: Error) => void)) => {
         if (_e === 'close') closeHandler = h as (code: number) => void
         if (_e === 'error') errorHandler = h as (err: Error) => void
@@ -56,7 +58,9 @@ const hoisted = vi.hoisted(() => {
 })
 
 vi.mock('node:child_process', () => ({
-  execFile: hoisted.mockExecFile,
+  // El cliente lanza los procesos con `spawn` (supervisor acotado, F24). La
+  // forma del hijo es la misma, así que se reutiliza el mismo mock.
+  spawn: hoisted.mockExecFile,
 }))
 
 vi.mock('node:fs/promises', () => ({
@@ -515,14 +519,16 @@ describe('PassClient · T-PASS-01 auditoría de solo lectura', () => {
 
 describe('PassClient — surgical branch coverage', () => {
   describe('execPass stderr vacío fallback', () => {
-    it('throws "pass exited with code N" cuando stderr vacío + non-zero exit', async () => {
+    it('nombra el código de salida cuando stderr viene vacío', async () => {
       const c = makeClient()
       const promise = c.get('proton/bridge')
       const entry = hoisted.captured[0]
       // Importante: NO emitStderr() → forzar el fallback `|| \`pass exited with code ${code}\``
       entry.emitClose(1)
       await expect(promise).rejects.toThrow(PassError)
-      await expect(promise).rejects.toThrow('pass exited with code 1')
+      // El mensaje lo compone el supervisor de procesos (F24): nombra el
+      // binario y el código, sin volcar la salida.
+      await expect(promise).rejects.toThrow(/pass terminó con código 1/)
     })
 
     it('falls back al código de salida cuando stderr solo tiene whitespace', async () => {
@@ -531,7 +537,7 @@ describe('PassClient — surgical branch coverage', () => {
       const entry = hoisted.captured[0]
       entry.emitStderr('   \n  ') // whitespace — trim() → ''
       entry.emitClose(2)
-      await expect(promise).rejects.toThrow('pass exited with code 2')
+      await expect(promise).rejects.toThrow(/pass terminó con código 2/)
     })
   })
 

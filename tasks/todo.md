@@ -121,9 +121,17 @@ Evidencia recogida para la decisión:
       cancelación; informa de `truncatedBy` en vez de fingir un recorrido
       completo. `hashFile` pasa a streaming.
 
-## P04 — Runtime, HTTP y cierre (PR-04) · `proposed`
-- P04-O01 ownership de dependencias (F19) · P04-O02 hardening HTTP (F20–F23, F27, F28)
-- P04-O03 supervisor de procesos (F24)
+## P04 — Runtime, HTTP y cierre (PR-04) · `implemented`
+- [x] P04-O02 hardening HTTP (F20, F21, F22, F28): la fábrica se niega a montarse
+      sin token válido; `compareTokens` falla cerrado; el cuerpo se parsea
+      después de autenticar; límite por origen antes de auth; etiquetas de
+      métricas acotadas
+- [x] P04-O03 supervisor de procesos (F24): `src/process-runner.ts` con deadline,
+      tope de salida, cancelación y `stdin` SIEMPRE cerrado
+- [x] P04-O01 ownership (F19): un solo juego de clientes por proceso, inyectado
+      en cada sesión; `dispose()` cierra sesiones con deadline
+- [ ] P04: F23 (cupos explícitos de sesión/concurrencia) y F27 (validación de
+      Host) siguen abiertos
 
 ## P05 — Integraciones reales (PR-05..07) · `proposed`
 - P05-O01 Bridge y TLS (F12–F15, F34) · P05-O02 backends de secretos (F07–F11)

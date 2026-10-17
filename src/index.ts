@@ -23,7 +23,7 @@
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { loadConfig, createLogger } from './config.js'
 import { buildHttpApp } from './http.js'
-import { buildServer } from './server.js'
+import { buildRuntime, buildServer } from './server.js'
 
 async function main(): Promise<void> {
   // Primera línea de defensa: Zod valida env vars o peta con mensaje legible.
@@ -83,27 +83,38 @@ async function main(): Promise<void> {
     process.exit(2)
   }
 
-  // `shared` mantiene vivos los pools IMAP/SMTP durante toda la vida del
-  // proceso; cada sesión HTTP recibe un `McpServer` propio dentro de
-  // `buildHttpApp`, pero todas reutilizan las mismas conexiones a Bridge.
-  const shared = buildServer(cfg, log)
-  installSignalHandlers(log, async () => {
-    try {
-      await shared.imap.close()
-    } catch {
-      /* noop */
-    }
-    try {
-      shared.smtp.close()
-    } catch {
-      /* noop */
-    }
-  })
+  // UN juego de clientes para todo el proceso. Antes se construía `shared`
+  // (que solo se usaba para cerrar) y además cada sesión creaba los suyos
+  // dentro de `buildServer`, que nadie cerraba: N sesiones, N pools abiertos
+  // (hallazgo F19). El comentario anterior decía que se reutilizaban; no era
+  // cierto.
+  const runtime = buildRuntime(cfg, log)
 
   const app = buildHttpApp({
-    buildServer: () => buildServer(cfg, log).server,
+    buildServer: () => buildServer(cfg, log, runtime).server,
     cfg,
     log,
+  })
+
+  installSignalHandlers(log, async () => {
+    // 1. Dejar de aceptar y cerrar sesiones.
+    try {
+      await app.dispose()
+    } catch {
+      /* noop */
+    }
+    // 2. Cerrar los recursos compartidos. El cliente de Drive lanza su CLI por
+    // llamada, así que no mantiene nada abierto: solo los pools de IMAP y SMTP.
+    try {
+      await runtime.imap.close()
+    } catch {
+      /* noop */
+    }
+    try {
+      runtime.smtp.close()
+    } catch {
+      /* noop */
+    }
   })
 
   app.listen(cfg.transport.httpPort, cfg.transport.httpHost, () => {

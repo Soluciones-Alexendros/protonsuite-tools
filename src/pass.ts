@@ -15,11 +15,11 @@
  * Backends: `pass` (https://www.passwordstore.org/) o `gopass`
  * (`PROTON_PASS_BACKEND=gopass`). La superficie de PassClient se mantiene.
  */
-import { execFile } from 'node:child_process'
 import { randomBytes, createHash } from 'node:crypto'
 import { readdir, stat, copyFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { join as joinPath, resolve as resolvePath } from 'node:path'
+import { runProcess } from './process-runner.js'
 
 export type PassBackend = 'pass' | 'gopass'
 
@@ -32,26 +32,21 @@ export type PassExecFn = (
 const STALE_MS_DEFAULT = 365 * 24 * 60 * 60 * 1000
 
 function createPassExec(binary: string): PassExecFn {
-  return async (args, opts) =>
-    new Promise((resolve, reject) => {
-      const child = execFile(binary, args, { env: opts.env })
-      let stdout = ''
-      let stderr = ''
-      child.stdout?.on('data', (d) => (stdout += d))
-      child.stderr?.on('data', (d) => (stderr += d))
-      child.on('close', (code) => {
-        if (code === 0) {
-          resolve(stdout)
-          return
-        }
-        reject(new Error(stderr.trim() || `${binary} exited with code ${code}`))
-      })
-      child.on('error', reject)
-      if (opts.input) {
-        child.stdin?.write(opts.input)
-        child.stdin?.end()
-      }
-    })
+  return async (args, opts) => {
+    // Antes esto era un `execFile` suelto: sin timeout, y con `if (opts.input)`
+    // —una cadena vacía es falsy— el `stdin` no se cerraba nunca, así que un
+    // `pass insert --multiline` con secreto vacío se quedaba esperando para
+    // siempre (hallazgo F24). Ahora pasa por el lanzador acotado.
+    const resultado = await runProcess({
+      file: binary,
+      args,
+      env: opts.env,
+      ...(opts.input !== undefined ? { input: opts.input } : {}),
+    });
+
+    if (resultado.ok) return resultado.stdout;
+    throw new Error(resultado.message);
+  };
 }
 
 const SAFE_PATH_RE = /^[a-zA-Z0-9._/-]+$/
