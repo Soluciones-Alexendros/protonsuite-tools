@@ -1,6 +1,9 @@
 /**
- * Registro de las MCP tools sobre un `McpServer` (47 por defecto;
- * 50 con Calendar experimental — ver `tests/contract/tools-list.test.ts`).
+ * Registro de las MCP tools sobre un `McpServer`.
+ *
+ * El inventario NO es fijo: depende de qué productos estén habilitados. Un
+ * producto apagado no registra sus tools (ver `enabled` por grupo y
+ * `specs/production-close/probe-capabilities.mjs`).
  *
  * Convenciones aplicadas a TODAS las tools:
  *  - **`inputSchema` con Zod**: el SDK convierte el schema Zod a JSON Schema
@@ -98,15 +101,20 @@ export function buildServer(
     )) as typeof server.registerTool
 
   // ---------------------------------------------------------------------------
-  // Registro de tools (47 por defecto / 50 con Calendar experimental) agrupado
-  // por dominio funcional. Cada helper encapsula el register de su grupo; los
-  // handlers capturan `imap`/`smtp` por closure, así que el cuerpo de
-  // `buildServer` solo orquesta.
+  // Registro de tools agrupado por dominio funcional. Cada helper encapsula el
+  // register de su grupo; los handlers capturan `imap`/`smtp` por closure, así
+  // que el cuerpo de `buildServer` solo orquesta.
+  //
+  // GATING: cada grupo que depende de un producto se registra SOLO si el
+  // producto está habilitado. Registrar tools de un producto apagado las hacía
+  // invocables y anunciadas, y el operador no podía deshabilitarlo (F18).
   // ---------------------------------------------------------------------------
   const alerts = new AlertSystem(cfg.alerts, log)
 
-  registerMailTools(server, { cfg, log, imap, smtp })
-  registerAgentTools(server, { cfg, log, alerts })
+  if (cfg.products.mail.enabled) {
+    registerMailTools(server, { cfg, log, imap, smtp })
+    registerAgentTools(server, { cfg, log, alerts })
+  }
 
   let driveClient: DriveClient | undefined
   if (cfg.products.drive.enabled) {

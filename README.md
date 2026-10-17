@@ -140,7 +140,16 @@ El agente analiza el inbox y presenta un plan **sin aplicar cambios**. Desactiva
 
 ## Tools MCP
 
-47 tools por defecto (50 con Calendar experimental). Lectura: `response_format: "markdown" | "json"`.
+El inventario **depende de qué productos estén habilitados**: un producto apagado no registra ni anuncia sus herramientas.
+
+| Configuración | Tools |
+| --- | --- |
+| Por defecto (Mail + Drive) | 39 |
+| + Pass y Calendar (`PROTON_PASS_ENABLED=true`, `PROTON_CALENDAR_ENABLED=true`) | 47 |
+| + Calendar experimental (`PROTON_CALENDAR_EXPERIMENTAL=true`) | 50 |
+| Todos los productos apagados | 5 (solo `proton_suite_status` y `proton_ecosystem_*`) |
+
+Lectura: `response_format: "markdown" | "json"`.
 
 | Producto | Tools | Resumen |
 | --- | --- | --- |

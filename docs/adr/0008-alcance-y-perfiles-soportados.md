@@ -97,9 +97,27 @@ node specs/production-close/probe-capabilities.mjs
 
 El resultado queda en `specs/production-close/s00-baseline/capabilities-by-profile.json`.
 
-Estado en el baseline: **no conforme**. F18 (herramientas de correo invocables
-con el producto apagado) es la brecha principal y corresponde a P06-O01. Hasta
-que se corrija, ninguna guía puede afirmar que apagar un producto lo deshabilita.
+Estado en el baseline: **no conforme** — F18 dejaba 14 herramientas de correo
+registradas e invocables con `PROTON_MAIL_ENABLED=false`, y 19 con todos los
+productos apagados, porque `registerMailTools` no consultaba el producto.
+
+**Corregido.** `buildServer` registra cada grupo solo si su producto está
+habilitado. Medido sobre la superficie real (`tools/list` por HTTP):
+
+| Perfil | Antes | Ahora |
+|---|---|---|
+| Todo habilitado | 39 | 39 |
+| `PROTON_MAIL_ENABLED=false` | 33 | 19 |
+| Solo Pass | 27 | 13 |
+| Solo Drive | 33 | 19 |
+| Calendar experimental | 42 | 42 |
+| Todos apagados | 19 | **5** |
+
+Las 5 supervivientes son transversales y no dependen de producto:
+`proton_suite_status` y `proton_ecosystem_*` (descubrimiento e instalación de
+binarios Proton). La regresión se cubre en
+`tests/contract/product-gating.test.ts`, que mide sobre `tools/list` real y no
+cuenta nombres en el código fuente.
 
 ## Pros y contras de las opciones
 

@@ -5,7 +5,16 @@ Estados válidos: proposed | ready | in_progress | blocked | implemented | verif
 `implemented` **no** implica `verified`.
 
 Base congelada: `origin/main` = `638850bb3cf26126eee757a742323eb2ddcb20b4`
-(tree `fd96749ee139792ce6de69f2d025ac1f438d23b4`). No usar la ref local `main`.
+(tree `fd96749ee139792ce6de69f2d025ac1f438d23b4`) al inicio del cierre. No usar
+la ref local `main`.
+
+## Lotes cerrados
+
+| PR | Qué cierra | Estado |
+|---|---|---|
+| [#122](https://github.com/Soluciones-Alexendros/protonsuite-tools/pull/122) | Gate `Dependency audit`: 5 críticas y 17 altas → 0 críticas y 1 alta no parcheable. Producción sin avisos (F39/F40). Incluye la alineación de scopes de commitlint con AGENTS.md. | **mergeado** · publicó `1.6.1` |
+| [#121](https://github.com/Soluciones-Alexendros/protonsuite-tools/pull/121) | F01 (pass-audit destruía credenciales), F02 (sobrescritura en organización Drive), F04 (contraseña de Bridge en el DTO público) + ADR-0008 y ledger F01–F44. | CLEAN, pendiente de merge |
+| — | F18: apagar un producto ya apaga sus herramientas (19 → 5 con todo apagado). Cubierto por `tests/contract/product-gating.test.ts`. | en este PR |
 
 ---
 
@@ -83,13 +92,19 @@ Base congelada: `origin/main` = `638850bb3cf26126eee757a742323eb2ddcb20b4`
 - P05-O03 Drive CLI y auth (F16, F17) · P05-O04 Mail, adjuntos y cachés (F26)
 
 ## P06 — Contrato completo MCP (PR-08) · `proposed`
-- P06-O01 inventario de tools (F18, F43) · P06-O02 resources/templates · P06-O03 prompts/clientes
+- P06-O01 inventario de tools: **F18 corregido** (gating por producto); falta el
+  catálogo generado `mcp-surface.json` y la unificación de registro/instrumentación (F43)
+- P06-O02 resources/templates · P06-O03 prompts/clientes
 
 ## P07 — Contenedores y operación (PR-09) · `proposed`
 - P07-O01 imágenes mínimas verificadas (F30–F32, F36, F40) · P07-O02 persistencia y observabilidad (F33, F35)
 
-## P08 — Calidad, CI y release (PR-10) · `proposed`
-- P08-O01 gates obligatorios (F38, F39) · P08-O02 coherencia y procedencia (F37)
+## P08 — Calidad, CI y release (PR-10) · `in_progress`
+- P08-O01 gates obligatorios: **F39 corregido** (auditoría en verde; excepciones con
+  dueño y caducidad en SECURITY.md). **F40 parcial**: sigue pendiente fijar la
+  toolchain (`pnpm/action-setup` con `version: latest` y `packageManager` ausente)
+- P08-O02 coherencia y procedencia (F37): `package.json` sigue en **1.4.3** con npm
+  publicando ya **1.6.1**; el release no escribe la versión en el repo
 - P08-O03 validadores que no mienten (F41)
 
 ## P09 — Guías y producto (PR-11) · `proposed`

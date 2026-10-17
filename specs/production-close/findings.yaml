@@ -109,8 +109,9 @@ findings:
     testIds: []
     status: proposed
   - id: F18
-    priority: P1
-    disposition: observed-static
+    priority: P2
+    disposition: fixed
+    fix: "src/server.ts: gate por producto; tests/contract/product-gating.test.ts"
     evidenceLocus: "gating explicit de mail.enabled=true"
     testIds: []
     status: proposed
