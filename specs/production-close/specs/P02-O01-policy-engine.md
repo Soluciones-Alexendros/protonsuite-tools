@@ -1,8 +1,13 @@
 # P02-O01 — Motor de políticas y aprobación vinculante (especificación)
 
-Estado: **propuesta, pendiente de aprobación del OWNER.**
-No se ha implementado nada. Ninguna tarea de este documento puede marcarse
-`implemented` sin PR, test y evidencia ligada al SHA.
+Estado: **aprobada el 17/10/2026** (identidad declarada + entrega completa con
+aprobación mínima; ver ADR-0009).
+
+Implementado en esta entrega: el núcleo (`src/authz/`) y sus pruebas.
+**Pendiente: conectar el control a los puntos de entrada.** A día de hoy el
+núcleo existe y está probado, pero todavía **no intercepta ninguna llamada**, así
+que el comportamiento del servidor no ha cambiado. Mientras siga así, el
+hallazgo F03 **no está cerrado**: un control sin conectar no protege.
 
 - Traza: `PST-PROD-CLOSE-2026-10-17` → fase P02, objetivo P02-O01.
 - Hallazgos: F03 (ausencia de aprobación vinculante), F43 (anotaciones que no
@@ -158,12 +163,21 @@ negativos, y coherencia catálogo ↔ `annotations`.
 6. `pnpm run lint`, `typecheck`, `test`, `test:contract`, `smoke` y `coverage`
    en verde, sin bajar los umbrales vigentes.
 
-## Cuestiones abiertas que bloquean el arranque
+## Decisiones tomadas
 
-1. **Identidad de actor**: ¿basta `sessionId` + identidad declarada, o se
-   introducen tokens por actor antes de empezar?
-2. **Corte del primer PR**: ¿se aprueba la recomendación de entregar
-   `authz-catalog` + `authz-journal` primero, con la política en «denegar toda
-   escritura», y dejar el canal de aprobación para el PR siguiente?
-3. **Ubicación y permisos del spool** de aprobaciones.
-4. **Granularidad**: ¿un grant por llamada o por plan con varios efectos?
+- **Identidad de actor:** declarada por el operador, **no verificada**. No es un
+  control de seguridad; solo hace legible la auditoría.
+- **Entrega:** las cuatro capacidades juntas, con aprobación mínima (fichero
+  local + consumo exclusivo). Se descartó entregar antes el catálogo con la
+  política en «denegar», porque congelaba el envío y rompía los E2E.
+- **Directorio de aprobaciones:** configurable, por defecto local al operador.
+- **Granularidad:** un permiso por llamada.
+
+## Pendiente para cerrar F03
+
+1. Conectar la política a los puntos de entrada (herramientas MCP y CLI).
+2. Comando local de aprobación (`protonsuite-agent approve <id>`).
+3. Declarar en los E2E la política que necesitan, para que sus escrituras sean
+   explícitas y no un agujero.
+4. Corregir las `annotations` equivocadas derivándolas del catálogo, con test de
+   contrato que falle si divergen.

@@ -1,7 +1,7 @@
 # 0009. Autorización: catálogo de efectos en servidor y aprobación vinculante
 
-- Estado: proposed
-- Fecha: 2026-10-17
+- Estado: accepted
+- Fecha: 2026-10-17 (aceptado el 2026-10-17)
 - Decisores: Alejandro · Soluciones Alexendros
 - Etiquetas: seguridad, autorización, agentes
 - Origen: `PST-PROD-CLOSE-2026-10-17` §1.3 (decisión obligatoria `ADR-AUTHZ`)
@@ -60,6 +60,33 @@ preferencia que se cambia con una variable de entorno.
 ## Resultado de la decisión
 
 Opción elegida: **"(opción B)"**.
+
+### Lo que se decidió además (17/10/2026)
+
+Dos cuestiones que el ADR no resolvía por sí solo:
+
+**A quién se llama "actor" → identidad declarada, no verificada.**
+El campo `actor` es un texto que escribe el operador en la configuración y que
+queda registrado en el permiso y en la auditoría. Sirve para leer la traza
+(«aprobó Alex»), **no para demostrar quién fue**. No es un control de seguridad:
+quien tenga el token puede escribir el nombre que quiera. Queda escrito aquí
+para que nadie lo confunda con atribución real. Los tokens por persona (que sí
+serían verificables) se decidirán en su propio ADR, cuando HTTP deje de ser
+monousuario; el perfil `HTTP-SINGLE` del ADR-0008 no los necesita.
+
+**Cómo se entrega → todo el control junto, con aprobación mínima.**
+Se implementan las cuatro capacidades en una sola entrega, pero la aprobación
+se queda deliberadamente pequeña: un fichero con un identificador en un
+directorio local, permisos restrictivos y consumo con creación exclusiva
+(`wx`). Sin interfaz gráfica, sin servicio, sin canal de red. El motivo de no
+partirlo: entregar antes el catálogo con la política en «denegar toda
+escritura» congelaría el envío de correo y rompería los E2E a la vez que añade
+el control, produciendo un PR que mezcla dos cosas opuestas.
+
+Las cuestiones 3 (dónde vive el directorio de aprobaciones) y 4 (un permiso por
+llamada o por plan con varios efectos) se resuelven en la implementación:
+directorio configurable con valor por defecto local, y **un permiso por llamada**
+(la aprobación por lote queda para cuando exista el concepto de plan aprobable).
 
 ### Catálogo de efectos (origen de verdad)
 
@@ -198,16 +225,13 @@ misma autorización: leer un recurso no puede ser una vía alternativa para muta
 
 ## Cuestiones abiertas
 
-1. **Identidad de actor.** Hoy hay un único bearer token compartido. ¿Bastan
-   `sessionId` + identidad declarada por el operador, o se introducen tokens por
-   actor? Introducirlos amplía el alcance (cuotas por identidad, revocación) y
-   necesitaría su propia decisión.
-2. **Dónde vive el spool de aprobaciones** por defecto y con qué permisos,
-   retención y cifrado.
-3. **Granularidad de la aprobación**: por llamada o por plan con varios efectos
-   (una aprobación para un lote de movimientos).
+1. ~~**Identidad de actor.**~~ Resuelta: identidad **declarada**, no verificada
+   (ver *Lo que se decidió además*). No cuenta como control de seguridad.
+2. ~~**Dónde vive el spool de aprobaciones.**~~ Resuelta: directorio
+   configurable, por defecto local al operador.
+3. ~~**Granularidad.**~~ Resuelta: un permiso por llamada.
 4. **Interacción con `AGENT_DRY_RUN`**: ¿se mantiene como capa global encima, o
-   se subsume en la política?
+   se subsume en la política? Sigue abierta; hoy se mantiene.
 
 ## Más información
 
