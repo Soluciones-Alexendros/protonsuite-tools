@@ -112,6 +112,30 @@ This project follows the following baseline for open-source AI agents that opera
 
 ---
 
+## Dependency audit exceptions
+
+The CI job `Dependency audit` runs `pnpm audit --audit-level=critical` over the whole
+workspace. Production dependencies must stay clean; any exception below is
+traceable, owned and time-boxed.
+
+**Current state.** `pnpm audit --prod` reports no known vulnerabilities. The
+whole tree (dev included) keeps two unfixed advisories:
+
+| Advisory | Package | Why it is still open | Owner | Review by |
+|---|---|---|---|---|
+| GHSA-vfj7-8cjw-p6xm (high) | `braces@3.0.3` via `micromatch` → `semantic-release` | The advisory asks for `>=3.0.4`, which **is not published** on npm (`3.0.3` is the latest). Not reachable from runtime code: `semantic-release` is build-time tooling only. | REL | 2027-01-17 |
+| GHSA vitest / `@vitest/mocker` (moderate) | `vitest@3.2.7` | Fix requires `vitest >= 4.1.11`, a major bump of the test runner. Dev-only. Tracked as its own change, not bundled into a security patch. | QA | 2027-01-17 |
+
+Rules for this list:
+
+- An exception must name a **reachability argument**, an owner and a review date.
+- Exceptions never cover a known loss of secrets or data.
+- Resolve by upgrading, never by relaxing the gate to `--audit-level=high` or
+  removing the job.
+- Verify with `pnpm install --frozen-lockfile && pnpm audit --prod --audit-level=low`.
+
+---
+
 ## What this agent does NOT protect against
 
 - An attacker who controls the **Bridge host** itself (OS-level access) can read the vault.
