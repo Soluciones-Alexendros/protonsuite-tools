@@ -24,6 +24,14 @@
  */
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { AlertSystem } from './alerts/index.js'
+import {
+  ApprovalStore,
+  DEFAULT_POLICY,
+  guardTool,
+  Journal,
+  type AuthzPolicyConfig,
+  type ToolHandler,
+} from './authz/index.js'
 import { BridgeClient } from './bridge/bridge-client.js'
 import { type createLogger, type Config } from './config.js'
 import { DriveClient } from './drive.js'
@@ -41,6 +49,10 @@ import { SmtpClient } from './smtp.js'
 import { VERSION } from './version.js'
 
 type Logger = ReturnType<typeof createLogger>
+
+/** Firma laxa del manejador, para confinar los casts en un solo sitio. */
+type ToolHandlerLike = (...args: never[]) => unknown
+
 
 export function buildServer(
   cfg: Config,
@@ -79,21 +91,52 @@ export function buildServer(
     },
   )
 
-  // Wrapper de registro con traza por handler. `register` comparte la firma
-  // (sobrecargada y genérica) de `server.registerTool`, así que cada call-site
-  // conserva el tipado de `args` inferido desde su inputSchema; el casting a
-  // `any` queda confinado aquí. Emite un `debug` con { tool, ms } al terminar
-  // (éxito o error) — sin volcar args, que pueden traer cuerpos o direcciones.
-  const register: typeof server.registerTool = ((name, config, cb) =>
-    server.registerTool(
+  // ---------------------------------------------------------------------------
+  // AUTORIZACIÓN — punto ÚNICO de intercepción.
+  //
+  // Se envuelve `server.registerTool` una sola vez, justo después de crear el
+  // servidor y antes de registrar nada. Así TODA herramienta —la de hoy y la
+  // que se añada mañana— pasa por la política, sin que cada grupo tenga que
+  // acordarse. Si se hiciera en cada fichero de producto, olvidarse de uno
+  // dejaría un agujero silencioso.
+  //
+  // Ver ADR-0009. El detalle de la decisión vive en `src/authz/guard.ts`.
+  // ---------------------------------------------------------------------------
+  const authzCfg = cfg.authz
+  const authzPolicy: AuthzPolicyConfig = authzCfg
+    ? {
+        mode: authzCfg.mode,
+        allow: authzCfg.allow,
+        requireApproval: authzCfg.requireApproval,
+      }
+    : DEFAULT_POLICY
+  const authzStore = new ApprovalStore({
+    dir: authzCfg?.approvalDir ?? '.protonsuite/approvals',
+  })
+  const authzJournal = new Journal({
+    file: authzCfg ? authzCfg.journalFile : 'logs/authz.jsonl',
+  })
+  const authzActor = authzCfg?.actor ?? 'operator'
+
+  const rawRegisterTool = server.registerTool.bind(server)
+  server.registerTool = ((
+    name: string,
+    config: unknown,
+    cb: ToolHandlerLike,
+  ) =>
+    rawRegisterTool(
       name,
       config as never,
       (async (...callArgs: unknown[]) => {
         const startedAt = Date.now()
         try {
-          return await (cb as (...a: unknown[]) => Promise<unknown>)(
-            ...callArgs,
-          )
+          return await guardTool(name, cb as ToolHandler, {
+            policy: authzPolicy,
+            store: authzStore,
+            journal: authzJournal,
+            actor: authzActor,
+            log,
+          })(...callArgs)
         } finally {
           log.debug('tool', { tool: name, ms: Date.now() - startedAt })
         }
@@ -140,7 +183,11 @@ export function buildServer(
 
   if (cfg.products.mail.enabled) {
     const bridgeClient = new BridgeClient('protonmail-bridge-core', log)
-    registerBridgeTools(register, bridgeClient, log)
+    registerBridgeTools(
+      (name, config, cb) => server.registerTool(name, config, cb),
+      bridgeClient,
+      log,
+    )
   }
 
   return {

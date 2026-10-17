@@ -321,7 +321,7 @@ function registerDriveDownloadTool(server: McpServer, deps: DriveDeps) {
         remote_path: z.string().default('/my-files').describe('Remote path on Proton Drive to download.'),
         local_path: z.string().optional().describe('Override staging directory locally. Defaults to configured stagingDir.'),
       },
-      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: true },
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true }
     },
     async ({ remote_path, local_path }) => {
       try {
@@ -381,7 +381,7 @@ function registerDriveShareTool(server: McpServer, deps: DriveDeps) {
         remote_path: z.string().describe('Remote Proton Drive path to share.'),
         user_email: z.email().describe('Email of the user to invite.'),
       },
-      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: true },
+      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: true }
     },
     async ({ remote_path, user_email }) => {
       try {
@@ -426,7 +426,7 @@ function registerDriveCopyTool(server: McpServer, deps: DriveDeps) {
       title: 'Copy files on Proton Drive',
       description: 'Copies a remote path using the proton-drive CLI.',
       inputSchema: { from: z.string().describe('Source remote path'), to: z.string().describe('Destination remote path') },
-      annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
     },
     async ({ from, to }) => {
       const r = await driveClient.copyFiles(from, to)
@@ -532,7 +532,7 @@ function registerDriveAuthLoginTool(server: McpServer, deps: DriveDeps) {
       inputSchema: {
         force: z.boolean().default(false).describe('If true, skips the already-authenticated check and returns login instructions.'),
       },
-      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false },
     },
     async ({ force }) => {
       try {

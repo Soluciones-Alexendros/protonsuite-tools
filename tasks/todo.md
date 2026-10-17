@@ -91,8 +91,15 @@ Evidencia recogida para la decisión:
 - No hay identidad de actor: hay un único bearer token compartido (`src/auth.ts`)
   y un `sessionId` por sesión (`src/http.ts`).
 
-- P02-O01 motor de políticas + aprobación vinculante (F03, F43) — **P0**,
-  especificado, sin implementar
+- P02-O01 motor de políticas + aprobación vinculante (F03, F43) — **P0**
+  - [x] Catálogo de efectos, política con denegación por defecto, aprobaciones
+        con consumo único y auditoría (`src/authz/`)
+  - [x] Conectado al servidor: punto único de intercepción en `buildServer`
+  - [x] Comando local `protonsuite-agent approve|reject|pending`
+  - [x] `annotations` alineadas con el catálogo + test de contrato (cierra F43
+        en lo que respecta a las herramientas publicadas)
+  - [ ] Conectar también el CLI del agente y los jobs
+  - [ ] Declarar política en los E2E que escriben
 - P02-O02 auditoría durable + redacción (F42)
 - P02-O03 secretos fuera del modelo (F06) — **P1**
 

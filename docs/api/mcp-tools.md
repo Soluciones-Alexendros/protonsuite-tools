@@ -833,7 +833,7 @@ _This tool takes no arguments._
 ### `proton_calendar_list_events` {#protoncalendarlistevents}
 
 **Title:** proton_calendar_list_events
-**Hints:** readOnly: true · openWorld: true
+**Hints:** readOnly: true · destructive: false · openWorld: true
 
 **Description:** [STUB] proton_calendar_list_events — E2E-encrypted sync, no CalDAV.
 
@@ -846,7 +846,7 @@ _This tool takes no arguments._
 ### `proton_calendar_create_event` {#protoncalendarcreateevent}
 
 **Title:** proton_calendar_create_event
-**Hints:** readOnly: true · openWorld: true
+**Hints:** readOnly: false · destructive: false · openWorld: true
 
 **Description:** [STUB] proton_calendar_create_event — E2E-encrypted sync, no CalDAV.
 
@@ -859,7 +859,7 @@ _This tool takes no arguments._
 ### `proton_calendar_list_calendars` {#protoncalendarlistcalendars}
 
 **Title:** proton_calendar_list_calendars
-**Hints:** readOnly: true · openWorld: true
+**Hints:** readOnly: true · destructive: false · openWorld: true
 
 **Description:** [STUB] proton_calendar_list_calendars — E2E-encrypted sync, no CalDAV.
 
@@ -1042,7 +1042,7 @@ _This tool takes no arguments._
 ### `proton_drive_download` {#protondrivedownload}
 
 **Title:** Download from Proton Drive to staging
-**Hints:** readOnly: false · destructive: false · idempotent: true · openWorld: true
+**Hints:** readOnly: false · destructive: false · idempotent: false · openWorld: true
 
 **Description:** Downloads a remote Proton Drive path into the local staging directory using the proton-drive CLI. Idempotent.
 
@@ -1074,7 +1074,7 @@ _This tool takes no arguments._
 ### `proton_drive_share` {#protondriveshare}
 
 **Title:** Share a Proton Drive path
-**Hints:** readOnly: false · destructive: false · idempotent: true · openWorld: true
+**Hints:** readOnly: false · destructive: true · idempotent: false · openWorld: true
 
 **Description:** Invites a Proton user to collaborate on a remote path using the proton-drive CLI.
 
@@ -1106,7 +1106,7 @@ _This tool takes no arguments._
 ### `proton_drive_copy` {#protondrivecopy}
 
 **Title:** Copy files on Proton Drive
-**Hints:** readOnly: true · idempotent: true · openWorld: false
+**Hints:** readOnly: false · destructive: false · idempotent: false · openWorld: false
 
 **Description:** Copies a remote path using the proton-drive CLI.
 
@@ -1167,7 +1167,7 @@ _This tool takes no arguments._
 ### `proton_drive_auth_login` {#protondriveauthlogin}
 
 **Title:** Authenticate with Proton Drive
-**Hints:** readOnly: false · destructive: false · idempotent: true · openWorld: false
+**Hints:** readOnly: false · destructive: true · idempotent: false · openWorld: false
 
 **Description:** Attempts to authenticate with the proton-drive CLI. Since the CLI requires interactive credentials, the tool returns a command the user must run in their terminal.
 

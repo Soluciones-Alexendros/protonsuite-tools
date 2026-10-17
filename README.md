@@ -161,6 +161,20 @@ Lectura: `response_format: "markdown" | "json"`.
 
 Contrato generado: [`docs/api/mcp-tools.md`](./docs/api/mcp-tools.md). Guía: [`docs/agent-quickstart.md`](./docs/agent-quickstart.md).
 
+### Escribir requiere tu aprobación
+
+Leer no pide nada. Escribir, borrar o tocar credenciales **no se ejecuta**: el servidor deja una solicitud y te la enseña.
+
+```bash
+protonsuite-agent pending          # qué espera aprobación, con los campos sensibles tachados
+protonsuite-agent approve <id>     # lo autorizas
+protonsuite-agent reject <id>      # lo deniegas
+```
+
+Después de aprobar, repite **exactamente** la misma llamada. Si cambias un destinatario o una letra del cuerpo, la aprobación ya no vale y habrá que aprobar otra vez.
+
+Aprobar solo se puede desde tu terminal: no hay forma de hacerlo por MCP ni pidiéndoselo al modelo. Detalles en [ADR-0009](./docs/adr/0009-authorization-y-aprobacion-vinculante.md).
+
 ---
 
 ## Agente

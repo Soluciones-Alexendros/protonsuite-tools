@@ -12,6 +12,9 @@ import type { Express } from "express";
 import request from "supertest";
 import type { Config } from "../../src/config.js";
 import { buildHttpApp } from "../../src/http.js";
+import { mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { buildServer } from "../../src/server.js";
 
 export interface ContractLogger {
@@ -65,6 +68,15 @@ export function makeContractCfg(overrides?: Partial<Config>): Config {
     },
     alerts: { enabled: false, logDir: "logs", minSeverity: "warning" },
     agent: { dryRun: true, maxInspectEmails: 1000, minConfidence: 0.6 },
+    // Las pruebas NO deben escribir estado en el repo: directorio temporal.
+    authz: {
+      mode: "enforce",
+      actor: "contract",
+      approvalDir: mkdtempSync(join(tmpdir(), "contract-authz-")),
+      journalFile: null,
+      allow: ["read"],
+      requireApproval: ["write", "destructive", "admin"],
+    },
     logLevel: "error",
     ...overrides,
   };

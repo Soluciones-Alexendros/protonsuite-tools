@@ -243,9 +243,59 @@ export class ApprovalStore {
     return { ok: true };
   }
 
-  pendingIds(): string[] {
-    this.ensureDirs();
+  /**
+   * Busca una aprobación viva que encaje EXACTAMENTE con esta llamada.
+   *
+   * Se empareja por la huella de los argumentos, no por un identificador que
+   * mande el cliente: así el cliente no puede elegir qué aprobación usar, y
+   * cambiar cualquier argumento rompe el encaje.
+   *
+   * Devuelve la solicitud más reciente que cumpla todo, o `null`.
+   */
+  findClaimable(binding: string, actor: string, sessionId: string): string | null {
+    // Defensivo: si el almacén no se puede ni preparar, no hay nada que
+    // encontrar. Lanzar aquí convertiría un problema de entorno en un error
+    // opaco del protocolo.
     try {
+      this.ensureDirs();
+    } catch {
+      return null;
+    }
+    const now = this.now().getTime();
+    let candidate: { id: string; createdAt: number } | null = null;
+
+    let granted: string[] = [];
+    try {
+      granted = readdirSync(this.path('granted'))
+        .filter((f) => f.endsWith('.json'))
+        .map((f) => f.replace(/\.json$/, ''));
+    } catch {
+      return null;
+    }
+
+    for (const id of granted) {
+      if (existsSync(this.path('consumed', id))) continue;
+      const request = this.readRequest('pending', id);
+      if (!request) continue;
+      if (request.binding !== binding) continue;
+      if (request.actor !== actor) continue;
+      if (request.sessionId !== sessionId) continue;
+      if (now > Date.parse(request.expiresAt)) continue;
+
+      const createdAt = Date.parse(request.createdAt);
+      if (candidate === null || createdAt > candidate.createdAt) {
+        candidate = { id, createdAt };
+      }
+    }
+
+    return candidate?.id ?? null;
+  }
+
+  pendingIds(): string[] {
+    // Igual que `findClaimable`: listar no debe lanzar por un problema de
+    // entorno. Se devuelve vacío y quien decide avisa.
+    try {
+      this.ensureDirs();
       return readdirSync(this.path('pending'))
         .filter((f) => f.endsWith('.json'))
         .map((f) => f.replace(/\.json$/, ''))

@@ -3,6 +3,7 @@
  * no third-party CalDAV access is possible.
  */
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
+import { effectOf, hintsFor } from '../authz/index.js'
 import type { createLogger } from '../config.js'
 
 type Logger = ReturnType<typeof createLogger>
@@ -36,7 +37,7 @@ export function registerCalendarTools(
         title: t,
         description: `[STUB] ${t} — E2E-encrypted sync, no CalDAV.`,
         inputSchema: {},
-        annotations: { readOnlyHint: true, openWorldHint: true },
+        annotations: { ...hintsFor(effectOf(t)?.effectClass ?? 'admin'), openWorldHint: true },
       },
       () => ({ content: [{ type: 'text', text: unavailable }] }),
     )

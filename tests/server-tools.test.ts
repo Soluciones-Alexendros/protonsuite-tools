@@ -171,6 +171,18 @@ const cfg: Config = {
     maxInspectEmails: 10,
     minConfidence: 0.6,
   },
+  // Política declarada a propósito para este fichero: estas pruebas comprueban
+  // el comportamiento de las herramientas, NO la autorización. Autorizar todas
+  // las clases aquí es explícito; el control se prueba en tests/authz y en el
+  // test de extremo a extremo de autorización.
+  authz: {
+    mode: 'enforce',
+    actor: 'test',
+    approvalDir: '/tmp/test-authz-approvals',
+    journalFile: '/tmp/test-authz-journal.jsonl',
+    allow: ['read', 'write', 'destructive', 'admin'],
+    requireApproval: [],
+  },
   logLevel: 'error',
 }
 

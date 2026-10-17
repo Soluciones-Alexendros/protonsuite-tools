@@ -29,6 +29,13 @@ export interface ToolEffect {
   readonly scopes: readonly Scope[];
   /** Por qué esa clase, en una frase. Se revisa en cada PR que toque la tool. */
   readonly reason: string;
+  /**
+   * La herramienta solo mira cuando `dry_run` es exactamente `true`. Se declara
+   * aquí, una por una, en vez de adivinarlo: pedir aprobación para un plan en
+   * seco sería ruido, pero dar por hecho que cualquiera con `dry_run` no toca
+   * nada sería un agujero.
+   */
+  readonly readonlyWhenDryRun?: true;
 }
 
 const read = (scopes: readonly Scope[], reason: string): ToolEffect => ({
@@ -117,10 +124,12 @@ export const TOOL_EFFECTS: Readonly<Record<string, ToolEffect>> = {
     ['drive-remote'],
     'Copia ficheros. Declaraba readOnly:true y escribe (F43).',
   ),
-  proton_drive_organize: destructive(
-    ['drive-staging'],
-    'Mueve masivamente el staging; con colisión puede perder ficheros (F02).',
-  ),
+  proton_drive_organize: {
+    effectClass: 'destructive',
+    scopes: ['drive-staging'],
+    reason: 'Mueve masivamente el staging; con colisión puede perder ficheros (F02).',
+    readonlyWhenDryRun: true,
+  },
   proton_drive_remove: destructive(['drive-remote'], 'Borra ficheros remotos.'),
   proton_drive_share: destructive(
     ['drive-remote'],

@@ -43,3 +43,10 @@ export {
 } from './approval-store.js';
 
 export { Journal, type JournalEntry, type JournalOutcome } from './journal.js';
+
+export { guardTool, type GuardDeps, type ToolHandler } from './guard.js';
+
+export {
+  runApprovalCommand,
+  type ApprovalCommandIo,
+} from './approval-cli.js';

@@ -40,6 +40,8 @@ export interface PolicyInput {
   readonly actor: string;
   /** Sesión MCP o ejecución del CLI. Es lo que impide reutilizar una aprobación. */
   readonly sessionId: string;
+  /** Argumentos de la llamada. Solo se usan para reglas declaradas en el catálogo. */
+  readonly args?: unknown;
 }
 
 export interface PolicyResult {
@@ -60,30 +62,52 @@ export function decide(
     };
   }
 
-  if (!isMutating(effect.effectClass)) {
-    return { decision: 'allow', reason: 'Solo lectura.', effect };
-  }
+  const effectiveClass = effectiveClassOf(effect, input.args);
 
-  // De aquí hacia abajo, la herramienta puede cambiar algo.
-  if (policy.allow.includes(effect.effectClass)) {
+  if (!isMutating(effectiveClass)) {
     return {
       decision: 'allow',
-      reason: `El operador autoriza la clase ${effect.effectClass}.`,
+      reason:
+        effectiveClass === effect.effectClass
+          ? 'Solo lectura.'
+          : 'Solo lectura: la llamada va en seco (dry_run).',
       effect,
     };
   }
 
-  if (policy.requireApproval.includes(effect.effectClass)) {
+  // De aquí hacia abajo, la herramienta puede cambiar algo.
+  if (policy.allow.includes(effectiveClass)) {
+    return {
+      decision: 'allow',
+      reason: `El operador autoriza la clase ${effectiveClass}.`,
+      effect,
+    };
+  }
+
+  if (policy.requireApproval.includes(effectiveClass)) {
     return {
       decision: 'require_approval',
-      reason: `La clase ${effect.effectClass} exige aprobación humana.`,
+      reason: `La clase ${effectiveClass} exige aprobación humana.`,
       effect,
     };
   }
 
   return {
     decision: 'deny',
-    reason: `La clase ${effect.effectClass} no está autorizada para este perfil.`,
+    reason: `La clase ${effectiveClass} no está autorizada para este perfil.`,
     effect,
   };
+}
+
+/**
+ * Clase efectiva de una llamada concreta.
+ *
+ * Hoy la única excepción declarada es `dry_run: true` en las herramientas que
+ * lo piden: no tocan nada, así que se tratan como lectura. No se adivina por el
+ * nombre del argumento: hay que declararlo en el catálogo.
+ */
+function effectiveClassOf(effect: ToolEffect, args: unknown): EffectClass {
+  if (effect.readonlyWhenDryRun !== true) return effect.effectClass;
+  const dryRun = (args as { dry_run?: unknown } | undefined)?.dry_run;
+  return dryRun === true ? 'read' : effect.effectClass;
 }

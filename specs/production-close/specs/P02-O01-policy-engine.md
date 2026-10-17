@@ -3,11 +3,15 @@
 Estado: **aprobada el 17/10/2026** (identidad declarada + entrega completa con
 aprobación mínima; ver ADR-0009).
 
-Implementado en esta entrega: el núcleo (`src/authz/`) y sus pruebas.
-**Pendiente: conectar el control a los puntos de entrada.** A día de hoy el
-núcleo existe y está probado, pero todavía **no intercepta ninguna llamada**, así
-que el comportamiento del servidor no ha cambiado. Mientras siga así, el
-hallazgo F03 **no está cerrado**: un control sin conectar no protege.
+Implementado y **conectado**: el control intercepta todas las herramientas MCP
+desde un único punto en `buildServer`, y existe el comando local de aprobación.
+Verificado de extremo a extremo en `tests/authz/guard-e2e.test.ts` (sin
+aprobación no se ejecuta; aprobada desde fuera, sí; cambiar un argumento la
+invalida; sin almacén, se deniega).
+
+**Pendiente para cerrar F03 del todo:** conectar también el CLI del agente y los
+jobs, y que los E2E que escriben declaren su política en vez de depender del
+valor por defecto.
 
 - Traza: `PST-PROD-CLOSE-2026-10-17` → fase P02, objetivo P02-O01.
 - Hallazgos: F03 (ausencia de aprobación vinculante), F43 (anotaciones que no
@@ -173,11 +177,28 @@ negativos, y coherencia catálogo ↔ `annotations`.
 - **Directorio de aprobaciones:** configurable, por defecto local al operador.
 - **Granularidad:** un permiso por llamada.
 
-## Pendiente para cerrar F03
+## Estado de las piezas
 
-1. Conectar la política a los puntos de entrada (herramientas MCP y CLI).
-2. Comando local de aprobación (`protonsuite-agent approve <id>`).
-3. Declarar en los E2E la política que necesitan, para que sus escrituras sean
-   explícitas y no un agujero.
-4. Corregir las `annotations` equivocadas derivándolas del catálogo, con test de
-   contrato que falle si divergen.
+| Pieza | Estado |
+|---|---|
+| Catálogo de efectos (50 herramientas) | hecho |
+| Política con denegación por defecto | hecho |
+| Aprobaciones con consumo único | hecho |
+| Auditoría con identificador de correlación | hecho |
+| Conectado a las herramientas MCP | hecho |
+| Comando local `approve` / `reject` / `pending` | hecho |
+| `annotations` alineadas + test de contrato | hecho |
+| Conectar el CLI del agente y los jobs | pendiente |
+| Política explícita en los E2E que escriben | pendiente |
+
+Hallazgos corregidos de paso, encontrados por las propias pruebas:
+
+- Tres `annotations` mentían: `proton_drive_copy` se declaraba de solo lectura y
+  copia ficheros; `proton_drive_share` y `proton_drive_auth_login` se declaraban
+  no destructivas y exponen contenido o cambian credenciales. Además
+  `proton_calendar_create_event`, que se declaraba de lectura.
+- El plan en seco de Drive (`dry_run: true`) pedía aprobación aunque no toca
+  nada. Ahora el catálogo lo declara explícitamente herramienta a herramienta.
+- `findClaimable` y `pendingIds` lanzaban si el almacén no se podía preparar, en
+  vez de devolver «no hay nada». Un problema de entorno se convertía en un error
+  opaco del protocolo.

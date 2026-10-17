@@ -4,9 +4,15 @@
  *
  * Usage:
  *   protonsuite-agent [goal]         Run an agent goal (default: setup)
+ *   protonsuite-agent pending        List operations waiting for approval
+ *   protonsuite-agent approve <id>   Approve one, from THIS terminal
+ *   protonsuite-agent reject <id>    Deny one
  *   protonsuite-agent --help         Show this help
  *   protonsuite-agent --version      Show version
  *   protonsuite-agent --list         List all available goals
+ *
+ * Aprobar solo se puede desde aquí. No hay forma de hacerlo por MCP ni desde
+ * el modelo: si la hubiera, la aprobación dejaría de ser un control (ADR-0009).
  *
  * Exit codes:
  *   0 = success
@@ -14,6 +20,8 @@
  *   2 = invalid arguments / configuration
  */
 import { runAgent, parseGoal, describeGoal } from "./agent/index.js";
+import { ApprovalStore, runApprovalCommand } from './authz/index.js';
+import { approvalDirFromEnv } from './config.js';
 import { VERSION } from "./version.js";
 
 const GOALS = [
@@ -27,6 +35,9 @@ function showHelp(): void {
 
 Usage:
   protonsuite-agent [goal]            Run an agent goal
+  protonsuite-agent pending           List operations waiting for approval
+  protonsuite-agent approve <id>      Approve one from this terminal
+  protonsuite-agent reject <id>       Deny one
   protonsuite-agent --help | -h       Show this help
   protonsuite-agent --version | -V    Show version
   protonsuite-agent --list | -l       List all available goals with descriptions
@@ -43,6 +54,22 @@ Environment:
   See .env.example or docs/ for configuration variables.
   LOG_LEVEL=error|warn|info|debug  (default: info)
 `);
+}
+
+/** Cablea el comando de aprobación con la terminal real. */
+function handleApprovalCommand(command: string, id: string | undefined): number {
+  const store = new ApprovalStore({ dir: approvalDirFromEnv() });
+  const who = process.env['USER'] ?? process.env['LOGNAME'] ?? 'unknown';
+  return runApprovalCommand(
+    command,
+    id,
+    store,
+    {
+      out: (text) => process.stdout.write(text),
+      err: (text) => process.stderr.write(text),
+    },
+    who,
+  );
 }
 
 async function main(): Promise<void> {
@@ -62,6 +89,11 @@ async function main(): Promise<void> {
       process.stdout.write(`${g}\n  ${describeGoal(g)}\n\n`);
     }
     process.exit(0);
+  }
+
+  // Aprobaciones: canal local, fuera del modelo.
+  if (arg === 'pending' || arg === 'approve' || arg === 'reject') {
+    process.exit(handleApprovalCommand(arg, process.argv[3]));
   }
 
   // Unknown flag
