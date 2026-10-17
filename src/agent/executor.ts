@@ -1,8 +1,13 @@
-import { mkdirSync, renameSync } from 'node:fs'
-import { dirname, resolve as resolvePath } from 'node:path'
+import { hostname } from 'node:os'
 import { AlertSystem } from '../alerts/index.js'
+import {
+  blockedReason,
+  buildAuthzRuntime,
+  guardTool,
+} from '../authz/index.js'
 import { loadConfig, type Config } from '../config.js'
 import { createLogger } from '../config.js'
+import type { OrganizeApplyResult, OrganizePlan } from '../drive-audit.js'
 import type { AgentGoal } from './goals.js'
 import { parseGoal, buildGoalContext, describeGoal } from './goals.js'
 import { buildOrganizationPlan, applyOrganizationPlan } from './organizer.js'
@@ -24,18 +29,37 @@ export async function runAgent(
     dryRun: ctx.dryRun,
     description: describeGoal(goal),
   })
-  alerts.audit('agent-start', 'agent/executor', { goal, dryRun: ctx.dryRun })
+  void alerts.audit('agent-start', 'agent/executor', { goal, dryRun: ctx.dryRun })
 
   const handler = goalHandlers[goal]
-  if (handler) {
-    const result = handler({ cfg, ctx, log, alerts })
-    if (result instanceof Promise) await result
-  } else {
+  if (!handler) {
     log.error(`Unknown agent goal: ${goal}`)
     process.exit(2)
   }
 
-  alerts.audit('agent-end', 'agent/executor', { goal })
+  // El CLI pasa por el MISMO control que las herramientas MCP. Si no pasara,
+  // sería una vía para mutar sin autorización (hallazgo F03).
+  const authz = buildAuthzRuntime(cfg.authz)
+  const guarded = guardTool(
+    `agent:${goal}`,
+    async () => handler({ cfg, ctx, log, alerts }),
+    { ...authz, log },
+  )
+
+  // La sesión del CLI tiene que ser ESTABLE entre ejecuciones: si fuera el pid,
+  // una aprobación no valdría para el intento siguiente.
+  const outcome = await guarded(
+    { dry_run: ctx.dryRun },
+    { sessionId: `cli:${hostname()}` },
+  )
+
+  const blocked = blockedReason(outcome)
+  if (blocked !== null) {
+    log.error(`Sin ejecutar: ${blocked}`)
+    process.exit(3)
+  }
+
+  void alerts.audit('agent-end', 'agent/executor', { goal })
 }
 // ---------------------------------------------------------------------------
 
@@ -94,7 +118,7 @@ const goalHandlers: Record<string, GoalHandler> = {
       )
     } else {
       await applyOrganizationPlan(cfg, plan, log)
-      alerts.audit('organize-applied', 'agent/executor', {
+      void alerts.audit('organize-applied', 'agent/executor', {
         newFolders: plan.newFolders,
         folderProposals: plan.folderProposals.length,
         labelProposals: plan.labelProposals.length,
@@ -150,18 +174,18 @@ const goalHandlers: Record<string, GoalHandler> = {
         items: report.rotationPlan,
       })
     } else {
-      for (const item of report.rotationPlan) {
-        await passClient.generate(item.path)
-        log.info('pass-audit regenerated', {
-          path: item.path,
-          reason: item.reason,
-        })
-      }
+      // Una auditoría NUNCA escribe: rotar la contraseña ALMACENADA no cambia
+      // la del servicio, así que regenerarla aquí invalida la credencial sin
+      // rotarla (hallazgo F01). El plan se informa y se aplica fuera del
+      // agente, entrada por entrada y con decisión explícita.
+      log.warn('pass-audit is read-only; rotationPlan NOT applied', {
+        items: report.rotationPlan.length,
+      })
     }
-    alerts.audit('pass-audit', 'agent/executor', {
+    void alerts.audit('pass-audit', 'agent/executor', {
       ...report,
       dryRun: ctx.dryRun,
-      applied: !ctx.dryRun ? report.rotationPlan.length : 0,
+      applied: 0,
     })
   },
 
@@ -177,7 +201,7 @@ const goalHandlers: Record<string, GoalHandler> = {
       duplicates: dups.length,
       obsoleteFiles: fmt.obsoleteFiles.length,
     })
-    alerts.audit('drive-audit', 'agent/executor', {
+    void alerts.audit('drive-audit', 'agent/executor', {
       totalFiles: inv.totalFiles,
       duplicates: dups.length,
       obsoleteFiles: fmt.obsoleteFiles.length,
@@ -191,26 +215,29 @@ const goalHandlers: Record<string, GoalHandler> = {
     if (ctx.dryRun) {
       log.info('drive-organize plan (dry-run)', {
         suggestions: plan.suggestions.length,
+        movable: plan.movable,
+        blocked: plan.blocked,
       })
       alerts.info(
         'drive-organize',
         'Plan de organización Drive en dry-run',
         'agent/executor',
-        { suggestions: plan.suggestions.length },
+        { suggestions: plan.suggestions.length, blocked: plan.blocked },
       )
     } else {
-      let moved = 0
-      for (const s of plan.suggestions) {
-        if (s.action === 'move') {
-          const src = resolvePath(deps.stagingDir, s.from)
-          const dst = resolvePath(deps.stagingDir, s.to)
-          mkdirSync(dirname(dst), { recursive: true })
-          renameSync(src, dst)
-          moved++
-        }
-      }
-      log.info('drive-organize applied', { moved })
-      alerts.audit('drive-organize-applied', 'agent/executor', { moved })
+      // Mismo motor que `proton_drive_organize`: revalida precondiciones y
+      // nunca sobrescribe (hallazgo F02).
+      const applied = deps.applyOrganizePlan(deps.stagingDir, plan, log)
+      log.info('drive-organize applied', {
+        moved: applied.moved,
+        skipped: applied.skipped,
+        failed: applied.failed,
+      })
+      void alerts.audit('drive-organize-applied', 'agent/executor', {
+        moved: applied.moved,
+        skipped: applied.skipped,
+        failed: applied.failed,
+      })
     }
   },
 
@@ -223,7 +250,7 @@ const goalHandlers: Record<string, GoalHandler> = {
       process.exit(2)
     }
     log.info('drive-list ok', { entries: r.files.length })
-    alerts.audit('drive-list', 'agent/executor', { entries: r.files.length })
+    void alerts.audit('drive-list', 'agent/executor', { entries: r.files.length })
   },
 
   'drive-download': async ({ cfg, log, alerts }) => {
@@ -235,7 +262,7 @@ const goalHandlers: Record<string, GoalHandler> = {
       process.exit(2)
     }
     log.info('drive-download ok', { localPath: r.localPath })
-    alerts.audit('drive-download', 'agent/executor', { localPath: r.localPath })
+    void alerts.audit('drive-download', 'agent/executor', { localPath: r.localPath })
   },
 
   'drive-upload': async ({ cfg, log, alerts }) => {
@@ -247,7 +274,7 @@ const goalHandlers: Record<string, GoalHandler> = {
       process.exit(2)
     }
     log.info('drive-upload ok', { remotePath: r.remotePath })
-    alerts.audit('drive-upload', 'agent/executor', { remotePath: r.remotePath })
+    void alerts.audit('drive-upload', 'agent/executor', { remotePath: r.remotePath })
   },
 
   'suite-status': ({ cfg, log }) => {
@@ -269,7 +296,7 @@ const goalHandlers: Record<string, GoalHandler> = {
         : 'not installed'
       log.info('  ' + b.name + ': ' + status)
     }
-    alerts.audit('suite-manage', 'agent/executor', {
+    void alerts.audit('suite-manage', 'agent/executor', {
       totalBinaries: all.length,
       installed: all.filter((b) => b.installed).length,
       authenticated: all.filter((b) => b.authenticated).length,
@@ -292,8 +319,13 @@ interface DriveDepsResult {
     scanInventory: (dir: string) => Promise<{ totalFiles: number; totalBytes: number }>
     findDuplicates: (dir: string) => Promise<{ hash: string; size: number; files: { path: string; name: string }[] }[]>
     formatReport: (dir: string) => Promise<{ totalExtensions: number; obsoleteFiles: { name: string; path: string; ext: string; size: number }[] }>
-    buildOrganizePlan: (dir: string) => Promise<{ suggestions: { action: string; from: string; to: string; reason: string }[] }>
+    buildOrganizePlan: (dir: string) => Promise<OrganizePlan>
   }
+  applyOrganizePlan: (
+    stagingDir: string,
+    plan: OrganizePlan,
+    log: ReturnType<typeof createLogger>,
+  ) => OrganizeApplyResult
 }
 
 async function loadDriveDeps(cfg: Config, log: ReturnType<typeof createLogger>): Promise<DriveDepsResult | null> {
@@ -302,7 +334,7 @@ async function loadDriveDeps(cfg: Config, log: ReturnType<typeof createLogger>):
     process.exit(2)
   }
   const { DriveClient } = await import('../drive.js')
-  const { DriveAuditor } = await import('../drive-audit.js')
+  const { DriveAuditor, applyOrganizePlan } = await import('../drive-audit.js')
   const driveCfg = cfg.products.drive
   const client = new DriveClient(driveCfg, log)
   const auditorInstance = new DriveAuditor(driveCfg.obsoleteExtensions, log)
@@ -310,6 +342,7 @@ async function loadDriveDeps(cfg: Config, log: ReturnType<typeof createLogger>):
     stagingDir: client.stagingDir,
     driveClient: client,
     auditor: auditorInstance,
+    applyOrganizePlan,
   } as unknown as DriveDepsResult
 }
 

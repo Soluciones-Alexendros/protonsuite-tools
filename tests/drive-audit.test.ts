@@ -40,10 +40,11 @@ describe('DriveAuditor', () => {
   })
 
   it('should detect duplicates by content', async () => {
+    const esperado = await hashFile(resolve(TMP, 'duplicate.txt'))
     const dups = await auditor.findDuplicates(TMP)
     expect(dups.length).toBeGreaterThanOrEqual(1)
     const dup = dups.find(
-      (d) => d.hash === hashFile(resolve(TMP, 'duplicate.txt')),
+      (d) => d.hash === esperado,
     )
     expect(dup).toBeDefined()
     expect(dup!.files.length).toBe(2)
@@ -61,15 +62,17 @@ describe('DriveAuditor', () => {
     expect(plan.suggestions.length).toBeGreaterThanOrEqual(1)
   })
 
-  it('skips entries when stat fails in scanInventory (broken symlink)', async () => {
+  it('registra un enlace roto sin seguirlo ni romperse (F25)', async () => {
     try {
       symlinkSync('/nonexistent', resolve(TMP, 'broken.lnk'))
     } catch { /* platform may not support symlinks, skip test */
       return
     }
     const inv = await auditor.scanInventory(TMP)
+    // Antes el enlace se seguía y `stat` fallaba, así que se descartaba en
+    // silencio. Ahora se ve como lo que es —un enlace— y no se atraviesa.
     const found = inv.files.find((f) => f.name === 'broken.lnk')
-    expect(found).toBeUndefined()
+    expect(found).toBeDefined()
   })
 
   it('skips entries when stat fails in findDuplicates (broken symlink)', async () => {

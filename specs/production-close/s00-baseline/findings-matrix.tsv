@@ -1,0 +1,46 @@
+TOTAL=44 PRESENTE=34 AUSENTE=10
+---
+F01	PRESENTE	executor llama passClient.generate=true; pass.ts usa --force=true
+F02	PRESENTE	server/drive.ts renameSync=true; executor renameSync=true; drive-audit sin analisis de colisiones=true
+F03	PRESENTE	ficheros con motor de aprobacion: ninguno
+F04	PRESENTE	bridge-client menciona password=true; server/bridge menciona password=true
+F05	PRESENTE	staging_dir desde cliente=true; contiene validacion de workspace=false
+F06	PRESENTE	password en inputSchema=true; totp=true
+F07	ausente	soporta gopass=true; usa CLI oficial Proton Pass=true
+F08	PRESENTE	expone injected=true; mecanismo real de inyeccion=true
+F09	PRESENTE	catch-continue en audit=true; contabiliza fallos=false
+F10	PRESENTE	pass.ts usa trim()=true
+F11	ausente	validatePath existe=true; bloquea nombres tipo opcion=true
+F12	PRESENTE	existsSync sobre nombre de binario sin resolver PATH=true
+F13	PRESENTE	host/puerto hardcodeado=true; lee de config=false
+F14	PRESENTE	health/checkImapAuth=true; distingue TLS=false
+F15	PRESENTE	cliCommand presente=true
+F16	PRESENTE	normalizeListOutput=true; degrada a lista vacia=false
+F17	ausente	login presente=true; timeout=true
+F18	PRESENTE	gating explicit de mail.enabled=true
+F19	PRESENTE	server por sesion=true; dispose/close=true
+F20	PRESENTE	rate limit + clave derivada de token=true
+F21	ausente	express.json@2857 vs auth bearer@793
+F22	PRESENTE	metodo RPC como label=true; saneado=false
+F23	ausente	cupos explicitos de sesion/concurrencia=false
+F24	ausente	execFile/spawn=true; timeout=true
+F25	PRESENTE	recorrido=true; trata lstat/symlink=false; hash sincrono sin stream=true
+F26	PRESENTE	descarga adjuntos=true; limite de tamano=false
+F27	ausente	valida Host=false; control condicionado a NODE_ENV=true
+F28	PRESENTE	token esperado vacio posible=true
+F29	PRESENTE	CORS=true; sesion=true
+F30	PRESENTE	Dockerfile declara USER no root=false
+F31	PRESENTE	imagen incluye pass/gpg=false
+F32	PRESENTE	descarga CLI=true; verifica integridad=false
+F33	PRESENTE	volumenes=true; incluye staging/journal/audit=true
+F34	PRESENTE	rejectUnauthorized=false=true; exige STARTTLS=true; inyecta CA=true
+F35	PRESENTE	healthz=true; readiness separada=false
+F36	PRESENTE	build de imagen incluye workspace web=false
+F37	ausente	package=1.4.3; server.json=1.4.3
+F38	PRESENTE	release espera gates=true
+F39	ausente	audit-level declarado=true; exige high=true
+F40	PRESENTE	base flotante=true; fijada por digest=false
+F41	PRESENTE	vitest.config excluye ficheros=true
+F42	ausente	alerts best-effort=false; redaccion en security.ts=true
+F43	PRESENTE	destructiveHint:false junto a efectos mutativos=true
+F44	PRESENTE	README declara version=1.4.0; package=1.4.3

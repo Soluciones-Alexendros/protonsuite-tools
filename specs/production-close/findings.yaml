@@ -1,0 +1,273 @@
+# Ledger F01..F44 — generado por specs/production-close/probe-findings.mjs
+# disposition: observed-static = verificado por lectura/grep en el arbol del baseline
+#              needs-manual-review = el predicado no disparo; requiere lectura manual
+#              reproduced-live = NO ALCANZADO en P00 (requiere entorno de fixtures)
+schemaVersion: 1
+sourceSha: 638850bb3cf26126eee757a742323eb2ddcb20b4
+sourceTree: fd96749ee139792ce6de69f2d025ac1f438d23b4
+findings:
+  - id: F01
+    priority: P0
+    disposition: observed-static
+    evidenceLocus: "executor llama passClient.generate=true; pass.ts usa --force=true"
+    testIds: []
+    status: proposed
+  - id: F02
+    priority: P0
+    disposition: observed-static
+    evidenceLocus: "server/drive.ts renameSync=true; executor renameSync=true; drive-audit sin analisis de colisiones=true"
+    testIds: []
+    status: proposed
+  - id: F03
+    priority: P0
+    disposition: observed-static
+    evidenceLocus: "ficheros con motor de aprobacion: ninguno"
+    testIds: []
+    status: proposed
+  - id: F04
+    priority: P0
+    disposition: observed-static
+    evidenceLocus: "bridge-client menciona password=true; server/bridge menciona password=true"
+    testIds: []
+    status: proposed
+  - id: F05
+    priority: P1
+    disposition: observed-static
+    evidenceLocus: "staging_dir desde cliente=true; contiene validacion de workspace=false"
+    testIds: []
+    status: proposed
+  - id: F06
+    priority: P1
+    disposition: observed-static
+    evidenceLocus: "password en inputSchema=true; totp=true"
+    testIds: []
+    status: proposed
+  - id: F07
+    priority: P1
+    disposition: needs-manual-review
+    evidenceLocus: "soporta gopass=true; usa CLI oficial Proton Pass=true"
+    testIds: []
+    status: proposed
+  - id: F08
+    priority: P1
+    disposition: observed-static
+    evidenceLocus: "expone injected=true; mecanismo real de inyeccion=true"
+    testIds: []
+    status: proposed
+  - id: F09
+    priority: P1
+    disposition: observed-static
+    evidenceLocus: "catch-continue en audit=true; contabiliza fallos=false"
+    testIds: []
+    status: proposed
+  - id: F10
+    priority: P1
+    disposition: observed-static
+    evidenceLocus: "pass.ts usa trim()=true"
+    testIds: []
+    status: proposed
+  - id: F11
+    priority: P1
+    disposition: needs-manual-review
+    evidenceLocus: "validatePath existe=true; bloquea nombres tipo opcion=true"
+    testIds: []
+    status: proposed
+  - id: F12
+    priority: P1
+    disposition: observed-static
+    evidenceLocus: "existsSync sobre nombre de binario sin resolver PATH=true"
+    testIds: []
+    status: proposed
+  - id: F13
+    priority: P1
+    disposition: observed-static
+    evidenceLocus: "host/puerto hardcodeado=true; lee de config=false"
+    testIds: []
+    status: proposed
+  - id: F14
+    priority: P1
+    disposition: observed-static
+    evidenceLocus: "health/checkImapAuth=true; distingue TLS=false"
+    testIds: []
+    status: proposed
+  - id: F15
+    priority: P1
+    disposition: observed-static
+    evidenceLocus: "cliCommand presente=true"
+    testIds: []
+    status: proposed
+  - id: F16
+    priority: P1
+    disposition: observed-static
+    evidenceLocus: "normalizeListOutput=true; degrada a lista vacia=false"
+    testIds: []
+    status: proposed
+  - id: F17
+    priority: P1
+    disposition: needs-manual-review
+    evidenceLocus: "login presente=true; timeout=true"
+    testIds: []
+    status: proposed
+  - id: F18
+    priority: P2
+    disposition: fixed
+    fix: "src/server.ts: gate por producto; tests/contract/product-gating.test.ts"
+    evidenceLocus: "gating explicit de mail.enabled=true"
+    testIds: []
+    status: proposed
+  - id: F19
+    priority: P1
+    disposition: observed-static
+    evidenceLocus: "server por sesion=true; dispose/close=true"
+    testIds: []
+    status: proposed
+  - id: F20
+    priority: P1
+    disposition: observed-static
+    evidenceLocus: "rate limit + clave derivada de token=true"
+    testIds: []
+    status: proposed
+  - id: F21
+    priority: P1
+    disposition: needs-manual-review
+    evidenceLocus: "express.json@2857 vs auth bearer@793"
+    testIds: []
+    status: proposed
+  - id: F22
+    priority: P1
+    disposition: observed-static
+    evidenceLocus: "metodo RPC como label=true; saneado=false"
+    testIds: []
+    status: proposed
+  - id: F23
+    priority: P1
+    disposition: needs-manual-review
+    evidenceLocus: "cupos explicitos de sesion/concurrencia=false"
+    testIds: []
+    status: proposed
+  - id: F24
+    priority: P1
+    disposition: needs-manual-review
+    evidenceLocus: "execFile/spawn=true; timeout=true"
+    testIds: []
+    status: proposed
+  - id: F25
+    priority: P1
+    disposition: observed-static
+    evidenceLocus: "recorrido=true; trata lstat/symlink=false; hash sincrono sin stream=true"
+    testIds: []
+    status: proposed
+  - id: F26
+    priority: P1
+    disposition: observed-static
+    evidenceLocus: "descarga adjuntos=true; limite de tamano=false"
+    testIds: []
+    status: proposed
+  - id: F27
+    priority: P1
+    disposition: needs-manual-review
+    evidenceLocus: "valida Host=false; control condicionado a NODE_ENV=true"
+    testIds: []
+    status: proposed
+  - id: F28
+    priority: P1
+    disposition: observed-static
+    evidenceLocus: "token esperado vacio posible=true"
+    testIds: []
+    status: proposed
+  - id: F29
+    priority: P1
+    disposition: observed-static
+    evidenceLocus: "CORS=true; sesion=true"
+    testIds: []
+    status: proposed
+  - id: F30
+    priority: P1
+    disposition: observed-static
+    evidenceLocus: "Dockerfile declara USER no root=false"
+    testIds: []
+    status: proposed
+  - id: F31
+    priority: P1
+    disposition: observed-static
+    evidenceLocus: "imagen incluye pass/gpg=false"
+    testIds: []
+    status: proposed
+  - id: F32
+    priority: P1
+    disposition: observed-static
+    evidenceLocus: "descarga CLI=true; verifica integridad=false"
+    testIds: []
+    status: proposed
+  - id: F33
+    priority: P1
+    disposition: observed-static
+    evidenceLocus: "volumenes=true; incluye staging/journal/audit=true"
+    testIds: []
+    status: proposed
+  - id: F34
+    priority: P1
+    disposition: observed-static
+    evidenceLocus: "rejectUnauthorized=false=true; exige STARTTLS=true; inyecta CA=true"
+    testIds: []
+    status: proposed
+  - id: F35
+    priority: P1
+    disposition: observed-static
+    evidenceLocus: "healthz=true; readiness separada=false"
+    testIds: []
+    status: proposed
+  - id: F36
+    priority: P1
+    disposition: observed-static
+    evidenceLocus: "build de imagen incluye workspace web=false"
+    testIds: []
+    status: proposed
+  - id: F37
+    priority: P1
+    disposition: needs-manual-review
+    evidenceLocus: "package=1.4.3; server.json=1.4.3"
+    testIds: []
+    status: proposed
+  - id: F38
+    priority: P1
+    disposition: observed-static
+    evidenceLocus: "release espera gates=true"
+    testIds: []
+    status: proposed
+  - id: F39
+    priority: P1
+    disposition: needs-manual-review
+    evidenceLocus: "audit-level declarado=true; exige high=true"
+    testIds: []
+    status: proposed
+  - id: F40
+    priority: P1
+    disposition: observed-static
+    evidenceLocus: "base flotante=true; fijada por digest=false"
+    testIds: []
+    status: proposed
+  - id: F41
+    priority: P1
+    disposition: observed-static
+    evidenceLocus: "vitest.config excluye ficheros=true"
+    testIds: []
+    status: proposed
+  - id: F42
+    priority: P1
+    disposition: needs-manual-review
+    evidenceLocus: "alerts best-effort=false; redaccion en security.ts=true"
+    testIds: []
+    status: proposed
+  - id: F43
+    priority: P1
+    disposition: observed-static
+    evidenceLocus: "destructiveHint:false junto a efectos mutativos=true"
+    testIds: []
+    status: proposed
+  - id: F44
+    priority: P1
+    disposition: observed-static
+    evidenceLocus: "README declara version=1.4.0; package=1.4.3"
+    testIds: []
+    status: proposed

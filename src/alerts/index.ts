@@ -19,6 +19,8 @@ export class AlertSystem {
   private readonly fileSink: FileAlertSink;
   private readonly sinks: AlertSink[] = [];
   private readonly minRank: number;
+  /** Escrituras de auditoría en curso, para poder drenarlas al apagar. */
+  private readonly pendientes = new Set<Promise<boolean>>();
 
   constructor(
     private readonly cfg: Config["alerts"],
@@ -84,7 +86,22 @@ export class AlertSystem {
     this.emit("critical", category, message, source, context);
   }
 
-  audit(action: string, source: string, context?: Record<string, unknown>): void {
+  /**
+   * Registro de auditoría.
+   *
+   * Devuelve una promesa que resuelve a `true` si la entrada quedó escrita. Antes
+   * era «best effort» y se tragaba el error: si el disco estaba lleno o el
+   * directorio no existía, la operación se ejecutaba y no quedaba rastro, sin que
+   * nadie se enterara (hallazgo F42).
+   *
+   * Quien necesite garantía debe esperar el resultado. Para las operaciones de
+   * riesgo, el motor de autorización ya lo exige antes del efecto.
+   */
+  audit(
+    action: string,
+    source: string,
+    context?: Record<string, unknown>,
+  ): Promise<boolean> {
     const event: AlertEvent = {
       severity: "info",
       category: "audit",
@@ -93,8 +110,38 @@ export class AlertSystem {
       source,
       ...(context !== undefined ? { context } : {}),
     };
-    void this.fileSink.emit(event).catch(() => {
-      /* audit trail — best effort */
+
+    const pendiente = this.writeAudit(event);
+    this.pendientes.add(pendiente);
+    void pendiente.finally(() => {
+      this.pendientes.delete(pendiente);
     });
+    return pendiente;
+  }
+
+  private async writeAudit(event: AlertEvent): Promise<boolean> {
+    try {
+      await this.fileSink.emit(event);
+      return true;
+    } catch (err) {
+      // Visible, no silenciado: un fallo de auditoría es un incidente.
+      this.log.error("audit sink failed", {
+        action: event.message,
+        source: event.source,
+        error: String(err),
+      });
+      return false;
+    }
+  }
+
+  /**
+   * Espera a que terminen las escrituras de auditoría en curso.
+   *
+   * Se llama al apagar, para no perder las últimas entradas.
+   */
+  async flush(): Promise<void> {
+    while (this.pendientes.size > 0) {
+      await Promise.allSettled([...this.pendientes]);
+    }
   }
 }

@@ -6,22 +6,12 @@
  * handlers, then we invoke each handler with controlled inputs.
  */
 
-import { existsSync, mkdirSync, renameSync } from "node:fs";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { Config } from "../../src/config.js";
 import { registerDriveTools } from "../../src/server/drive.js";
 
 // ---------------------------------------------------------------------------
-// Mock fs operations for organise tool (dry_run=false moves real files)
-// ---------------------------------------------------------------------------
-vi.mock("node:fs", () => ({
-  existsSync: vi.fn(),
-  mkdirSync: vi.fn(),
-  renameSync: vi.fn(),
-}));
-
-// ---------------------------------------------------------------------------
-// Mock DriveAuditor
+// Mock DriveAuditor + motor de aplicación
 // ---------------------------------------------------------------------------
 
 const mockAuditor = {
@@ -32,8 +22,11 @@ const mockAuditor = {
   hashFile: vi.fn(),
 };
 
+const mockApplyOrganizePlan = vi.fn();
+
 vi.mock("../../src/drive-audit.js", () => ({
   DriveAuditor: vi.fn().mockImplementation(() => mockAuditor),
+  applyOrganizePlan: (...args: unknown[]) => mockApplyOrganizePlan(...args),
 }));
 
 // ---------------------------------------------------------------------------
@@ -244,13 +237,34 @@ describe("proton_drive_audit", () => {
     expect(parsed.obsoleteFiles).toHaveLength(1);
   });
 
-  it("uses custom staging_dir when provided", async () => {
+  it("acepta un staging_dir DENTRO del workspace", async () => {
     const tool = capturedTools.get("proton_drive_audit")!;
     await (tool.handler)({
-      staging_dir: "/custom/path",
+      staging_dir: "/tmp/staging/sub",
     } as never);
 
-    expect(mockAuditor.scanInventory).toHaveBeenCalledWith("/custom/path");
+    expect(mockAuditor.scanInventory).toHaveBeenCalledWith("/tmp/staging/sub");
+  });
+
+  it("RECHAZA un staging_dir fuera del workspace (F05)", async () => {
+    const tool = capturedTools.get("proton_drive_audit")!;
+    const result = (await (tool.handler)({
+      staging_dir: "/etc",
+    } as never)) as { isError?: boolean; content: { text: string }[] };
+
+    expect(result.isError).toBe(true);
+    expect(result.content[0]!.text).toContain("absolute-outside");
+    expect(mockAuditor.scanInventory).not.toHaveBeenCalled();
+  });
+
+  it("RECHAZA un staging_dir que se escapa con .. (F05)", async () => {
+    const tool = capturedTools.get("proton_drive_audit")!;
+    const result = (await (tool.handler)({
+      staging_dir: "../../etc",
+    } as never)) as { isError?: boolean; content: { text: string }[] };
+
+    expect(result.isError).toBe(true);
+    expect(mockAuditor.scanInventory).not.toHaveBeenCalled();
   });
 
   it("returns error when auditor throws", async () => {
@@ -420,10 +434,13 @@ describe("proton_drive_organize", () => {
     expect((result as any).structuredContent.dryRun).toBe(true);
   });
 
-  it("executes moves when dry_run=false", async () => {
-    vi.mocked(existsSync).mockReturnValue(false);
-    vi.mocked(mkdirSync).mockReturnValue(undefined);
-    vi.mocked(renameSync).mockReturnValue(undefined);
+  it("aplica con el motor compartido cuando dry_run=false", async () => {
+    mockApplyOrganizePlan.mockReturnValue({
+      moved: 1,
+      skipped: 0,
+      failed: 0,
+      results: [{ from: "a.md", to: "docs/a.md", status: "moved" }],
+    });
 
     const tool = capturedTools.get("proton_drive_organize")!;
     const result = await (tool.handler)({
@@ -431,31 +448,63 @@ describe("proton_drive_organize", () => {
     } as never);
 
     const text = (result as any).content[0].text;
-    expect(text).toContain("Moved 1 files");
+    expect(text).toContain("Moved 1, skipped 0, failed 0");
+    expect(mockApplyOrganizePlan).toHaveBeenCalledWith(
+      "/tmp/staging",
+      expect.anything(),
+      silentLog,
+    );
+    expect((result as any).structuredContent.dryRun).toBe(false);
   });
 
-  it("skips mkdirSync when destination dir already exists", async () => {
-    vi.mocked(existsSync).mockReturnValue(true);
-    vi.mocked(renameSync).mockReturnValue(undefined);
+  it("informa de fallos sin inventar éxito (F02)", async () => {
+    mockApplyOrganizePlan.mockReturnValue({
+      moved: 0,
+      skipped: 0,
+      failed: 1,
+      results: [
+        { from: "a.md", to: "docs/a.md", status: "failed", reason: "destination-exists" },
+      ],
+    });
 
     const tool = capturedTools.get("proton_drive_organize")!;
-    const result = await (tool.handler)({
-      dry_run: false,
-    } as never);
+    const result = await (tool.handler)({ dry_run: false } as never);
 
-    expect(mkdirSync).not.toHaveBeenCalled();
-    expect(renameSync).toHaveBeenCalled();
     const text = (result as any).content[0].text;
-    expect(text).toContain("Moved 1 files");
+    expect(text).toContain("Moved 0, skipped 0, failed 1");
+    expect(text).not.toContain("Moved 1");
   });
 
-  it("uses custom staging_dir", async () => {
+  it("propaga la estrategia al constructor del plan", async () => {
+    const tool = capturedTools.get("proton_drive_organize")!;
+    await (tool.handler)({ dry_run: true, strategy: "rename" } as never);
+
+    expect(mockAuditor.buildOrganizePlan).toHaveBeenCalledWith("/tmp/staging", {
+      strategy: "rename",
+    });
+  });
+
+  it("acepta un staging_dir dentro del workspace", async () => {
     const tool = capturedTools.get("proton_drive_organize")!;
     await (tool.handler)({
-      staging_dir: "/custom",
+      staging_dir: "/tmp/staging/sub",
+      strategy: "reject",
     } as never);
 
-    expect(mockAuditor.buildOrganizePlan).toHaveBeenCalledWith("/custom");
+    expect(mockAuditor.buildOrganizePlan).toHaveBeenCalledWith("/tmp/staging/sub", {
+      strategy: "reject",
+    });
+  });
+
+  it("rechaza por defecto cuando el handler se invoca sin strategy", async () => {
+    const tool = capturedTools.get("proton_drive_organize")!;
+    await (tool.handler)({ dry_run: true } as never);
+
+    // El handler se invoca directo (sin Zod), así que el default del schema no
+    // se aplica aquí; queda documentado que Zod es quien garantiza 'reject'.
+    expect(mockAuditor.buildOrganizePlan).toHaveBeenCalledWith("/tmp/staging", {
+      strategy: undefined,
+    });
   });
 
   it("returns error when organize throws", async () => {
@@ -505,10 +554,10 @@ describe("proton_drive_format_report", () => {
   it("uses custom staging_dir", async () => {
     const tool = capturedTools.get("proton_drive_format_report")!;
     await (tool.handler)({
-      staging_dir: "/other",
+      staging_dir: "/tmp/staging/otro",
     } as never);
 
-    expect(mockAuditor.formatReport).toHaveBeenCalledWith("/other");
+    expect(mockAuditor.formatReport).toHaveBeenCalledWith("/tmp/staging/otro");
   });
 
   it("returns error when format throws", async () => {

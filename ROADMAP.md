@@ -89,7 +89,7 @@ Transforma el estado del producto en unidades de trabajo. Cada fase tiene objeti
 
 **Depende de:** Subfase 0.
 
-**Objetivo:** backend `gopass`, audit con plan de rotación (dry-run), Pass en compose, DX residual.
+**Objetivo:** backend `gopass`, audit con plan de rotación (solo lectura), Pass en compose, DX residual.
 
 **Traza:** CONSTITUTION §§4–5; ADR-003; ADR-004.
 
@@ -98,13 +98,14 @@ Transforma el estado del producto en unidades de trabajo. Cada fase tiene objeti
 **Tareas:**
 
 - [x] Backend `gopass` drop-in (`PROTON_PASS_BACKEND` / `GOPASS_STORE_DIR`) + tests.
-- [x] `pass-audit`: reporte + `rotationPlan`; dry-run por defecto; regeneración solo con `AGENT_DRY_RUN=false`.
+- [x] `pass-audit`: reporte + `rotationPlan`; **siempre de solo lectura** (no regenera ni sobrescribe entradas).
+- [x] `pass generate` / `pass insert`: no-clobber por defecto; sobrescribir exige `overwrite: true` y deja copia del cifrado anterior.
 - [x] Docker Compose: volúmenes Pass/gpg documentados y listos.
 - [x] Coverage badge en README; alerting.md documenta webhook/ntfy (env `ALERT_NTFY_*`).
 
 **Exclusiones:** CalDAV Proton; OAuth Drive; monorepo; dashboard web.
 
-**Criterio de salida:** `pass-audit` usable en dry-run con plan de rotación; gopass cubierto por tests; deploy docs al día; checklist Fase 1 firmada.
+**Criterio de salida:** `pass-audit` usable en dry-run con plan de rotación; ninguna ruta de auditoría escribe en el store; gopass cubierto por tests; deploy docs al día; checklist Fase 1 firmada.
 
 ---
 

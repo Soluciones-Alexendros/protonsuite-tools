@@ -19,6 +19,9 @@ export const MailBridgeSchema = z
     // Path en el password store de Pass desde el que resolver la contraseña
     // JIT. Si se define y PROTON_PASS_ENABLED=true, `pass` puede estar vacío.
     passPath: z.string().optional(),
+    // Ruta en el password store desde la que resolver el TOTP JIT. Existe para
+    // que el segundo factor NO tenga que pasar por el modelo (hallazgo F06).
+    totpPath: z.string().optional(),
     host: z.string().default('127.0.0.1'),
     imapPort: z.number().int().positive().default(1143),
     smtpPort: z.number().int().positive().default(1025),

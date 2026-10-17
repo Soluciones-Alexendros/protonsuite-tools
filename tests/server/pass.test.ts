@@ -45,6 +45,17 @@ const defaultCfg = {
   },
 } as never
 
+/**
+ * Modo antiguo declarado a propósito: estas pruebas comprueban el
+ * comportamiento de insertar, no el control sobre el secreto.
+ */
+const cfgConSecretos = {
+  products: {
+    pass: { enabled: true, storeDir: '/tmp/store' },
+  },
+  secrets: { fromModel: true },
+} as never
+
 beforeEach(() => {
   vi.clearAllMocks()
 })
@@ -60,13 +71,17 @@ type ToolHandler = (args: Record<string, unknown>) => Promise<{
 
 function captureHandler() {
   const handlers = new Map<string, ToolHandler>()
+  const schemas = new Map<string, { inputSchema?: Record<string, unknown> }>()
   const server = {
-    registerTool: vi.fn((name: string, _schema: unknown, handler: ToolHandler) => {
+    registerTool: vi.fn((name: string, schema: unknown, handler: ToolHandler) => {
       handlers.set(name, handler)
+      schemas.set(name, schema as { inputSchema?: Record<string, unknown> })
     }),
   } as unknown as McpServer
   return {
     server,
+    /** Esquema registrado, para poder afirmar qué argumentos NO acepta. */
+    schemaOf: (toolName: string) => schemas.get(toolName),
     invoke: async (toolName: string, args: Record<string, unknown> = {}) => {
       const handler = handlers.get(toolName)
       if (!handler) throw new Error(`Tool "${toolName}" not registered`)
@@ -173,7 +188,7 @@ describe('registerPassTools', () => {
       const parsed = JSON.parse(result.content[0].text)
       expect(parsed.generated).toBe(true)
       expect(parsed.length).toBe(24)
-      expect(hoisted.mockGenerate).toHaveBeenCalledWith('new/pass', 24)
+      expect(hoisted.mockGenerate).toHaveBeenCalledWith('new/pass', 24, {})
     })
 
     it('genera con length personalizado', async () => {
@@ -212,13 +227,42 @@ describe('registerPassTools', () => {
     it('inserta y devuelve mensaje', async () => {
       hoisted.mockInsert.mockResolvedValue({ ok: true, path: 'new/entry' })
       const { server, invoke } = captureHandler()
-      registerPassTools(server, { cfg: defaultCfg, log: hoisted.silentLog })
+      registerPassTools(server, { cfg: cfgConSecretos, log: hoisted.silentLog })
 
       const result = await invoke('proton_pass_insert', { path: 'new/entry', secret: 's3cr3t' })
       expect(result.content[0].text).toContain('Inserted entry')
-      expect(hoisted.mockInsert).toHaveBeenCalledWith('new/entry', 's3cr3t')
+      expect(hoisted.mockInsert).toHaveBeenCalledWith('new/entry', 's3cr3t', {})
       // El secreto no debe aparecer en el log ni en la respuesta
       expect(result.content[0].text).not.toContain('s3cr3t')
+    })
+
+    it('sin opt-in devuelve isError cuando la entrada ya existe (F01)', async () => {
+      hoisted.mockInsert.mockRejectedValue(new Error('Entry already exists: new/entry'))
+      const { server, invoke } = captureHandler()
+      registerPassTools(server, { cfg: cfgConSecretos, log: hoisted.silentLog })
+
+      const result = await invoke('proton_pass_insert', { path: 'new/entry', secret: 's3cr3t' })
+      expect(result.isError).toBe(true)
+      expect(result.content[0].text).toContain('already exists')
+      expect(result.content[0].text).not.toContain('s3cr3t')
+    })
+
+    it('con overwrite:true informa de la copia de seguridad', async () => {
+      hoisted.mockInsert.mockResolvedValue({
+        ok: true,
+        path: 'new/entry',
+        backupPath: '/store/new/entry.gpg.bak.1',
+      })
+      const { server, invoke } = captureHandler()
+      registerPassTools(server, { cfg: cfgConSecretos, log: hoisted.silentLog })
+
+      const result = await invoke('proton_pass_insert', {
+        path: 'new/entry',
+        secret: 's3cr3t',
+        overwrite: true,
+      })
+      expect(hoisted.mockInsert).toHaveBeenCalledWith('new/entry', 's3cr3t', { overwrite: true })
+      expect(result.content[0].text).toContain('backup: /store/new/entry.gpg.bak.1')
     })
   })
 
@@ -257,5 +301,64 @@ describe('registerPassTools', () => {
       expect(result.content[0].text).toContain('→')
       expect(result.content[0].text).toContain('s')
     })
+  })
+})
+
+describe('proton_pass_insert · perfil seguro (T-SEC-02)', () => {
+  it('el esquema NO acepta el secreto: el modelo no lo transporta', async () => {
+    const { server, schemaOf } = captureHandler()
+    registerPassTools(server, { cfg: defaultCfg, log: hoisted.silentLog })
+
+    const campos = Object.keys(schemaOf('proton_pass_insert')?.inputSchema ?? {})
+    expect(campos).toContain('path')
+    expect(campos).not.toContain('secret')
+  })
+
+  it('la llamada explica cómo hacerlo bien y no guarda nada', async () => {
+    const { server, invoke } = captureHandler()
+    registerPassTools(server, { cfg: defaultCfg, log: hoisted.silentLog })
+
+    const result = await invoke('proton_pass_insert', { path: 'proton/bridge' })
+
+    expect(result.isError).toBe(true)
+    expect(result.content[0].text).toContain('pass insert proton/bridge')
+    expect(result.structuredContent.status).toBe('refused')
+    expect(hoisted.mockInsert).not.toHaveBeenCalled()
+  })
+})
+
+describe('proton_pass_list · sin entradas', () => {
+  it('lo dice claramente cuando el almacén está vacío', async () => {
+    hoisted.mockList.mockResolvedValue([])
+    const { server, invoke } = captureHandler()
+    registerPassTools(server, { cfg: defaultCfg, log: hoisted.silentLog })
+
+    const result = await invoke('proton_pass_list', { response_format: 'markdown' })
+    expect(result.content[0].text).toContain('No entries found')
+  })
+})
+
+describe('proton_pass_list · formatos', () => {
+  // Nota: el handler se invoca directo (sin Zod), así que hay que pasar
+  // response_format explícitamente; el default del esquema no se aplica.
+  it('lista en json', async () => {
+    hoisted.mockList.mockResolvedValue(['a', 'b'])
+    const { server, invoke } = captureHandler()
+    registerPassTools(server, { cfg: defaultCfg, log: hoisted.silentLog })
+
+    const result = await invoke('proton_pass_list', { response_format: 'json' })
+    expect(result.content[0].text).toContain('"count"')
+  })
+
+  it('acepta un filtro', async () => {
+    hoisted.mockList.mockResolvedValue(['proton/bridge'])
+    const { server, invoke } = captureHandler()
+    registerPassTools(server, { cfg: defaultCfg, log: hoisted.silentLog })
+
+    const result = await invoke('proton_pass_list', {
+      filter: 'proton',
+      response_format: 'json',
+    })
+    expect(JSON.parse(result.content[0].text).entries).toEqual(['proton/bridge'])
   })
 })

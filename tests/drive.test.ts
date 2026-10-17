@@ -55,6 +55,9 @@ vi.mock('node:fs', () => ({
 vi.mock('node:fs/promises', () => ({
   readdir: hoisted.mockReaddir,
   stat: hoisted.mockStat,
+  // El recorrido acotado usa lstat a propósito: no sigue enlaces (F25). El mock
+  // responde igual que stat porque lo que se prueba aquí es el recuento.
+  lstat: hoisted.mockStat,
 }))
 
 beforeEach(() => { vi.clearAllMocks() })
@@ -206,7 +209,12 @@ describe('DriveClient', () => {
       })
       hoisted.mockStat.mockImplementation(async (p: string) => ({
         isDirectory: () => p.endsWith('/sub'),
+        // El recorrido acotado pregunta primero si es un enlace (F25).
+        isSymbolicLink: () => false,
+        dev: 1,
+        ino: p.length,
         size: 100,
+        mtime: new Date(),
       }))
       hoisted.setNextResult('')
       const r = await makeClient().status()

@@ -1,11 +1,11 @@
-import { existsSync, mkdirSync, renameSync } from 'node:fs'
-import { dirname, resolve } from 'node:path'
+import { resolve } from 'node:path'
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { z } from 'zod'
 import type { createLogger, Config } from '../config.js'
-import { DriveAuditor } from '../drive-audit.js'
+import { applyOrganizePlan, DriveAuditor } from '../drive-audit.js'
 import { withDrivePathLock } from '../drive-mutex.js'
 import type { DriveClient } from '../drive.js'
+import { WorkspacePolicy, WorkspaceViolation } from '../workspace.js'
 import { asStructured } from './structured-content.js'
 
 type Logger = ReturnType<typeof createLogger>
@@ -86,7 +86,11 @@ function registerDriveAuditTool(
       },
     },
     async ({ response_format, staging_dir }) => {
-      const staging = staging_dir ? resolve(staging_dir) : driveClient.stagingDir
+      const stagingResuelto = resolveStaging(driveClient.stagingDir, staging_dir)
+      if (!stagingResuelto.ok) {
+        return { isError: true, content: [{ type: 'text' as const, text: stagingResuelto.error }] }
+      }
+      const staging = stagingResuelto.path
       try {
         const inv = await auditor.scanInventory(staging)
         const dups = await auditor.findDuplicates(staging)
@@ -166,51 +170,79 @@ function registerDriveStatusTool(server: McpServer, deps: DriveDeps) {
 
 // ── Organize ───────────────────────────────────────────────────────────────
 
+/**
+ * Resuelve el staging pedido por el cliente DENTRO del workspace.
+ *
+ * La raíz la fija el operador en la configuración; un `staging_dir` del cliente
+ * solo puede apuntar ahí dentro (hallazgo F05).
+ */
+function resolveStaging(
+  root: string,
+  stagingDir: string | undefined,
+): { ok: true; path: string } | { ok: false; error: string } {
+  try {
+    return { ok: true, path: new WorkspacePolicy({ root }).resolveInside(stagingDir) }
+  } catch (err) {
+    if (err instanceof WorkspaceViolation) {
+      return {
+        ok: false,
+        error: `Ruta rechazada (${err.code}). El workspace es: ${resolve(root)}`,
+      }
+    }
+    throw err
+  }
+}
+
 function registerDriveOrganizeTool(
   server: McpServer,
   deps: DriveDeps,
   auditor: DriveAuditor,
 ) {
-  const { driveClient } = deps
+  const { driveClient, log } = deps
   server.registerTool(
     'proton_drive_organize',
     {
       title: 'Organize files in Proton Drive',
-      description: 'Analyzes the staging directory and moves files into a structured folder layout (by type). Dry-run by default.',
+      description: 'Analyzes the staging directory and moves files into a structured folder layout (by type). Dry-run by default. Never overwrites: colliding destinations are rejected unless strategy="rename".',
       inputSchema: {
         dry_run: z.boolean().default(true).describe('If true, only shows the plan without moving files.'),
         staging_dir: z.string().optional(),
+        strategy: z
+          .enum(['reject', 'rename'])
+          .default('reject')
+          .describe(
+            'What to do when the destination is taken: reject (default, no-clobber) or rename (disambiguate).',
+          ),
       },
-      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
+      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: true },
     },
-    async ({ dry_run, staging_dir }) => {
-      const staging = staging_dir ? resolve(staging_dir) : driveClient.stagingDir
+    async ({ dry_run, staging_dir, strategy }) => {
+      const stagingResuelto = resolveStaging(driveClient.stagingDir, staging_dir)
+      if (!stagingResuelto.ok) {
+        return { isError: true, content: [{ type: 'text' as const, text: stagingResuelto.error }] }
+      }
+      const staging = stagingResuelto.path
       return withDrivePathLock(`staging:${staging}`, async () => {
       try {
-        const plan = await auditor.buildOrganizePlan(staging)
+        const plan = await auditor.buildOrganizePlan(staging, { strategy })
         if (dry_run) {
           const lines = [
             '# Organize plan (dry-run)', '',
-            '## Suggested moves:',
-            ...plan.suggestions.map((s) => `- \`${s.from}\` → \`${s.to}\` (${s.reason})`),
+            `Strategy: ${plan.strategy} · movable: ${plan.movable} · blocked: ${plan.blocked}`, '',
+            '## Suggested actions:',
+            ...plan.suggestions.map((s) => `- [${s.action}] \`${s.from}\` → \`${s.to}\` (${s.reason})`),
           ]
           return {
             content: [{ type: 'text', text: lines.join('\n') }],
-            structuredContent: { dryRun: true, suggestions: plan.suggestions },
+            structuredContent: { dryRun: true, ...plan },
           }
         }
-        let moved = 0
-        for (const s of plan.suggestions) {
-          if (s.action === 'move') {
-            const src = resolve(staging, s.from)
-            const dst = resolve(staging, s.to)
-            const dstDir = dirname(dst)
-            if (!existsSync(dstDir)) mkdirSync(dstDir, { recursive: true })
-            renameSync(src, dst)
-            moved++
-          }
+        const applied = applyOrganizePlan(staging, plan, log)
+        const summary = `Moved ${applied.moved}, skipped ${applied.skipped}, failed ${applied.failed}. Run sync to push changes to ProtonDrive.`
+        return {
+          content: [{ type: 'text', text: summary }],
+          structuredContent: { dryRun: false, ...applied },
         }
-        return { content: [{ type: 'text', text: `Moved ${moved} files. Run sync to push changes to ProtonDrive.` }] }
       } catch (err) {
         return { isError: true, content: [{ type: 'text', text: String(err) }] }
       }
@@ -239,7 +271,11 @@ function registerDriveFormatReportTool(
       annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
     },
     async ({ staging_dir, response_format }) => {
-      const staging = staging_dir ? resolve(staging_dir) : driveClient.stagingDir
+      const stagingResuelto = resolveStaging(driveClient.stagingDir, staging_dir)
+      if (!stagingResuelto.ok) {
+        return { isError: true, content: [{ type: 'text' as const, text: stagingResuelto.error }] }
+      }
+      const staging = stagingResuelto.path
       try {
         const fmt = await auditor.formatReport(staging)
         if (response_format === 'json') {
@@ -321,7 +357,7 @@ function registerDriveDownloadTool(server: McpServer, deps: DriveDeps) {
         remote_path: z.string().default('/my-files').describe('Remote path on Proton Drive to download.'),
         local_path: z.string().optional().describe('Override staging directory locally. Defaults to configured stagingDir.'),
       },
-      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: true },
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true }
     },
     async ({ remote_path, local_path }) => {
       try {
@@ -381,7 +417,7 @@ function registerDriveShareTool(server: McpServer, deps: DriveDeps) {
         remote_path: z.string().describe('Remote Proton Drive path to share.'),
         user_email: z.email().describe('Email of the user to invite.'),
       },
-      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: true },
+      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: true }
     },
     async ({ remote_path, user_email }) => {
       try {
@@ -426,7 +462,7 @@ function registerDriveCopyTool(server: McpServer, deps: DriveDeps) {
       title: 'Copy files on Proton Drive',
       description: 'Copies a remote path using the proton-drive CLI.',
       inputSchema: { from: z.string().describe('Source remote path'), to: z.string().describe('Destination remote path') },
-      annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
     },
     async ({ from, to }) => {
       const r = await driveClient.copyFiles(from, to)
@@ -532,7 +568,7 @@ function registerDriveAuthLoginTool(server: McpServer, deps: DriveDeps) {
       inputSchema: {
         force: z.boolean().default(false).describe('If true, skips the already-authenticated check and returns login instructions.'),
       },
-      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false },
     },
     async ({ force }) => {
       try {

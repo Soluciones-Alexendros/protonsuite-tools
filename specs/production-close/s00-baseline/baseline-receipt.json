@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "E-T-BASE-01-baseline",
+  "testId": "T-BASE-01",
+  "sourceSha": "a8398b0749d0270cc3971a3db4b22f97b9cdb938",
+  "sourceTree": "fd96749ee139792ce6de69f2d025ac1f438d23b4",
+  "lockfileSha256": "3af38688d90c7465db247d78d6dac485ba96587a89ac1639b51745eaa5b7f359",
+  "gates": [
+    {"name": "rev-parse-head", "exitCode": 0, "durationSeconds": 0,01}
+    {"name": "status-porcelain", "exitCode": 0, "durationSeconds": 0,01}
+    {"name": "install-frozen", "exitCode": 0, "durationSeconds": 6,94}
+    {"name": "lint", "exitCode": 0, "durationSeconds": 3,64}
+    {"name": "typecheck", "exitCode": 0, "durationSeconds": 2,49}
+    {"name": "test", "exitCode": 0, "durationSeconds": 3,54}
+    {"name": "build", "exitCode": 0, "durationSeconds": 3,43}
+    {"name": "test-contract", "exitCode": 0, "durationSeconds": 1,18}
+    {"name": "smoke", "exitCode": 0, "durationSeconds": 1,70}
+    {"name": "coverage", "exitCode": 0, "durationSeconds": 3,18}
+    {"name": "docs-generate", "exitCode": 0, "durationSeconds": 0,43}
+    {"name": "docs-check", "exitCode": 0, "durationSeconds": 0,26}
+  ]
+}

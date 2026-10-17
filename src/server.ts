@@ -1,6 +1,9 @@
 /**
- * Registro de las MCP tools sobre un `McpServer` (47 por defecto;
- * 50 con Calendar experimental — ver `tests/contract/tools-list.test.ts`).
+ * Registro de las MCP tools sobre un `McpServer`.
+ *
+ * El inventario NO es fijo: depende de qué productos estén habilitados. Un
+ * producto apagado no registra sus tools (ver `enabled` por grupo y
+ * `specs/production-close/probe-capabilities.mjs`).
  *
  * Convenciones aplicadas a TODAS las tools:
  *  - **`inputSchema` con Zod**: el SDK convierte el schema Zod a JSON Schema
@@ -21,8 +24,13 @@
  */
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { AlertSystem } from './alerts/index.js'
+import {
+  buildAuthzRuntime,
+  guardTool,
+  type ToolHandler,
+} from './authz/index.js'
 import { BridgeClient } from './bridge/bridge-client.js'
-import { type createLogger, type Config } from './config.js'
+import { secretsFromModel, type createLogger, type Config } from './config.js'
 import { DriveClient } from './drive.js'
 import { ImapClient } from './imap.js'
 import { PassClient } from './pass.js'
@@ -38,6 +46,10 @@ import { SmtpClient } from './smtp.js'
 import { VERSION } from './version.js'
 
 type Logger = ReturnType<typeof createLogger>
+
+/** Firma laxa del manejador, para confinar los casts en un solo sitio. */
+type ToolHandlerLike = (...args: never[]) => unknown
+
 
 export function buildServer(
   cfg: Config,
@@ -76,21 +88,35 @@ export function buildServer(
     },
   )
 
-  // Wrapper de registro con traza por handler. `register` comparte la firma
-  // (sobrecargada y genérica) de `server.registerTool`, así que cada call-site
-  // conserva el tipado de `args` inferido desde su inputSchema; el casting a
-  // `any` queda confinado aquí. Emite un `debug` con { tool, ms } al terminar
-  // (éxito o error) — sin volcar args, que pueden traer cuerpos o direcciones.
-  const register: typeof server.registerTool = ((name, config, cb) =>
-    server.registerTool(
+  // ---------------------------------------------------------------------------
+  // AUTORIZACIÓN — punto ÚNICO de intercepción.
+  //
+  // Se envuelve `server.registerTool` una sola vez, justo después de crear el
+  // servidor y antes de registrar nada. Así TODA herramienta —la de hoy y la
+  // que se añada mañana— pasa por la política, sin que cada grupo tenga que
+  // acordarse. Si se hiciera en cada fichero de producto, olvidarse de uno
+  // dejaría un agujero silencioso.
+  //
+  // Ver ADR-0009. El detalle de la decisión vive en `src/authz/guard.ts`.
+  // ---------------------------------------------------------------------------
+  const authz = buildAuthzRuntime(cfg.authz)
+
+  const rawRegisterTool = server.registerTool.bind(server)
+  server.registerTool = ((
+    name: string,
+    config: unknown,
+    cb: ToolHandlerLike,
+  ) =>
+    rawRegisterTool(
       name,
       config as never,
       (async (...callArgs: unknown[]) => {
         const startedAt = Date.now()
         try {
-          return await (cb as (...a: unknown[]) => Promise<unknown>)(
-            ...callArgs,
-          )
+          return await guardTool(name, cb as ToolHandler, {
+            ...authz,
+            log,
+          })(...callArgs)
         } finally {
           log.debug('tool', { tool: name, ms: Date.now() - startedAt })
         }
@@ -98,15 +124,20 @@ export function buildServer(
     )) as typeof server.registerTool
 
   // ---------------------------------------------------------------------------
-  // Registro de tools (47 por defecto / 50 con Calendar experimental) agrupado
-  // por dominio funcional. Cada helper encapsula el register de su grupo; los
-  // handlers capturan `imap`/`smtp` por closure, así que el cuerpo de
-  // `buildServer` solo orquesta.
+  // Registro de tools agrupado por dominio funcional. Cada helper encapsula el
+  // register de su grupo; los handlers capturan `imap`/`smtp` por closure, así
+  // que el cuerpo de `buildServer` solo orquesta.
+  //
+  // GATING: cada grupo que depende de un producto se registra SOLO si el
+  // producto está habilitado. Registrar tools de un producto apagado las hacía
+  // invocables y anunciadas, y el operador no podía deshabilitarlo (F18).
   // ---------------------------------------------------------------------------
   const alerts = new AlertSystem(cfg.alerts, log)
 
-  registerMailTools(server, { cfg, log, imap, smtp })
-  registerAgentTools(server, { cfg, log, alerts })
+  if (cfg.products.mail.enabled) {
+    registerMailTools(server, { cfg, log, imap, smtp })
+    registerAgentTools(server, { cfg, log, alerts })
+  }
 
   let driveClient: DriveClient | undefined
   if (cfg.products.drive.enabled) {
@@ -132,7 +163,31 @@ export function buildServer(
 
   if (cfg.products.mail.enabled) {
     const bridgeClient = new BridgeClient('protonmail-bridge-core', log)
-    registerBridgeTools(register, bridgeClient, log)
+    const totpPath = bridgeCfg.totpPath
+    const totpResolver =
+      cfg.products.pass.enabled && totpPath
+        ? async () => {
+            const client = new PassClient(
+              {
+                storeDir: cfg.products.pass.storeDir,
+                backend: cfg.products.pass.backend ?? 'pass',
+              },
+              log,
+            )
+            return client.get(totpPath)
+          }
+        : undefined
+    registerBridgeTools(
+      (name, config, cb) => server.registerTool(name, config, cb),
+      bridgeClient,
+      log,
+      {
+        secretsFromModel: secretsFromModel(cfg),
+        bridgeUser: bridgeCfg.user,
+        resolvePassword: passwordResolver,
+        ...(totpResolver !== undefined ? { resolveTotp: totpResolver } : {}),
+      },
+    )
   }
 
   return {

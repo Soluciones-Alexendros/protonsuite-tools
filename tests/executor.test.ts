@@ -40,6 +40,17 @@ const { defaultConfig, mockLogFns, mockAlertFns, setupReportMock, failReportMock
     transport: { kind: 'stdio', httpHost: '127.0.0.1', httpPort: 8787, allowedOrigins: [] },
     alerts: { enabled: true, minSeverity: 'warning', logDir: 'logs' },
     agent: { dryRun: true, maxInspectEmails: 1000, minConfidence: 0.5 },
+    // Politica declarada a proposito: estas pruebas comprueban el comportamiento
+    // de los objetivos del agente, NO la autorizacion. El control del CLI se
+    // prueba en tests/agent/cli-authz.test.ts.
+    authz: {
+      mode: 'enforce',
+      actor: 'test',
+      approvalDir: '/tmp/test-executor-authz',
+      journalFile: '/tmp/test-executor-authz.jsonl',
+      allow: ['read', 'write', 'destructive', 'admin'],
+      requireApproval: [],
+    },
     logLevel: 'info',
   }
   return {
@@ -69,7 +80,13 @@ const { defaultConfig, mockLogFns, mockAlertFns, setupReportMock, failReportMock
   }
 })
 
-const { mockPassClientFns, mockDriveClientFns, mockDriveAuditorFns, mockBinaries } = vi.hoisted(() => ({
+const { mockPassClientFns, mockDriveClientFns, mockDriveAuditorFns, mockApplyOrganizePlan, mockBinaries } = vi.hoisted(() => ({
+  mockApplyOrganizePlan: vi.fn().mockReturnValue({
+    moved: 0,
+    skipped: 0,
+    failed: 0,
+    results: [],
+  }),
   mockPassClientFns: {
     audit: vi.fn().mockResolvedValue({
       storeOk: true, totalEntries: 5,
@@ -90,7 +107,12 @@ const { mockPassClientFns, mockDriveClientFns, mockDriveAuditorFns, mockBinaries
     scanInventory: vi.fn().mockReturnValue({ totalFiles: 10, totalBytes: 1024, byExt: {}, byDir: {}, files: [] }),
     findDuplicates: vi.fn().mockReturnValue([]),
     formatReport: vi.fn().mockReturnValue({ totalExtensions: 3, extensions: ['.md', '.txt', '.jpg'], obsoleteExtensions: [], obsoleteFiles: [], noExtension: 0 }),
-    buildOrganizePlan: vi.fn().mockReturnValue({ suggestions: [] }),
+    buildOrganizePlan: vi.fn().mockReturnValue({
+      strategy: 'reject',
+      suggestions: [],
+      movable: 0,
+      blocked: 0,
+    }),
   },
   mockBinaries: [
     { name: 'protonmail-bridge-core', installed: true, version: '3.24.0', authenticated: true },
@@ -136,13 +158,16 @@ vi.mock('../src/drive.js', () => ({
 
 vi.mock('../src/drive-audit.js', () => ({
   DriveAuditor: vi.fn().mockImplementation(() => mockDriveAuditorFns),
+  applyOrganizePlan: (...args: unknown[]) => mockApplyOrganizePlan(...args),
 }))
 
 vi.mock('node:fs', async (importOriginal) => {
   const actual = await importOriginal<typeof import('node:fs')>()
   return {
     ...actual,
-    mkdirSync: vi.fn(),
+    // Se espía pero se deja pasar a la implementación real: el almacén de
+    // aprobaciones necesita crear directorios de verdad.
+    mkdirSync: vi.fn(actual.mkdirSync),
     renameSync: vi.fn(),
   }
 })
@@ -282,13 +307,22 @@ describe('runAgent · pass-audit', () => {
     expect(mockPassClientFns.generate).not.toHaveBeenCalled()
   })
 
-  it('sin dry-run regenera entradas del rotationPlan', async () => {
+  it('sin dry-run la auditoría sigue siendo de solo lectura (F01)', async () => {
     vi.mocked(loadConfig).mockReturnValue({
       ...withPassEnabled(),
       agent: { ...defaultConfig.agent, dryRun: false },
     })
     await runAgent('pass-audit')
-    expect(mockPassClientFns.generate).toHaveBeenCalledWith('servicios/old')
+    expect(mockPassClientFns.generate).not.toHaveBeenCalled()
+    expect(mockLogFns.warn).toHaveBeenCalledWith(
+      'pass-audit is read-only; rotationPlan NOT applied',
+      expect.objectContaining({ items: 1 }),
+    )
+    expect(mockAlertFns.audit).toHaveBeenCalledWith(
+      'pass-audit',
+      'agent/executor',
+      expect.objectContaining({ applied: 0, dryRun: false }),
+    )
   })
 
   it('exit(2) cuando Pass no habilitado', async () => {
@@ -318,19 +352,58 @@ describe('runAgent · drive goals', () => {
     expect(mockLogFns.info).toHaveBeenCalledWith('drive-organize plan (dry-run)', expect.objectContaining({ suggestions: 0 }))
   })
 
-  it('drive-organize sin dry-run aplica moves', async () => {
-    const { mkdirSync, renameSync } = await import('node:fs')
+  it('drive-organize sin dry-run aplica con el motor compartido (F02)', async () => {
     mockDriveAuditorFns.buildOrganizePlan.mockReturnValue({
-      suggestions: [{ action: 'move', from: 'a.doc', to: 'docs/a.doc' }],
+      strategy: 'reject',
+      suggestions: [{ action: 'move', from: 'a.doc', to: 'docs/a.doc', reason: 'r' }],
+      movable: 1,
+      blocked: 0,
+    })
+    mockApplyOrganizePlan.mockReturnValue({
+      moved: 1,
+      skipped: 0,
+      failed: 0,
+      results: [{ from: 'a.doc', to: 'docs/a.doc', status: 'moved' }],
     })
     vi.mocked(loadConfig).mockReturnValue({
       ...withDriveEnabled(),
       agent: { ...defaultConfig.agent, dryRun: false },
     })
     await runAgent('drive-organize')
-    expect(mkdirSync).toHaveBeenCalled()
-    expect(renameSync).toHaveBeenCalled()
-    expect(mockLogFns.info).toHaveBeenCalledWith('drive-organize applied', { moved: 1 })
+    expect(mockApplyOrganizePlan).toHaveBeenCalledWith(
+      '/tmp/staging',
+      expect.objectContaining({ movable: 1 }),
+      expect.anything(),
+    )
+    expect(mockLogFns.info).toHaveBeenCalledWith('drive-organize applied', {
+      moved: 1,
+      skipped: 0,
+      failed: 0,
+    })
+  })
+
+  it('drive-organize informa de fallos parciales sin inventar éxito (F02)', async () => {
+    mockApplyOrganizePlan.mockReturnValue({
+      moved: 1,
+      skipped: 0,
+      failed: 2,
+      results: [],
+    })
+    vi.mocked(loadConfig).mockReturnValue({
+      ...withDriveEnabled(),
+      agent: { ...defaultConfig.agent, dryRun: false },
+    })
+    await runAgent('drive-organize')
+    expect(mockLogFns.info).toHaveBeenCalledWith('drive-organize applied', {
+      moved: 1,
+      skipped: 0,
+      failed: 2,
+    })
+    expect(mockAlertFns.audit).toHaveBeenCalledWith(
+      'drive-organize-applied',
+      'agent/executor',
+      { moved: 1, skipped: 0, failed: 2 },
+    )
   })
 
   it('drive-list lista archivos remotos', async () => {
@@ -407,5 +480,79 @@ describe('runAgent · suite-manage', () => {
     expect(mockAlertFns.audit).toHaveBeenCalledWith('suite-manage', 'agent/executor', expect.objectContaining({
       totalBinaries: 3, installed: 2,
     }))
+  })
+})
+
+// ===========================================================================
+// El CLI del agente pasa por el MISMO control que las herramientas MCP.
+// Si no pasara, sería una vía para mutar sin autorización (hallazgo F03).
+// ===========================================================================
+
+describe('runAgent · control de autorización en el CLI', () => {
+  const DIR = '/tmp/test-executor-cli-authz'
+
+  function conPolitica(requireApproval: boolean): Config {
+    return {
+      ...withDriveEnabled(),
+      agent: { ...defaultConfig.agent, dryRun: false },
+      authz: {
+        mode: 'enforce',
+        actor: 'test',
+        approvalDir: DIR,
+        journalFile: null,
+        allow: requireApproval ? ['read'] : ['read', 'write', 'destructive', 'admin'],
+        requireApproval: requireApproval
+          ? ['write', 'destructive', 'admin']
+          : [],
+      },
+    }
+  }
+
+  it('sin aprobación, un objetivo que escribe NO se ejecuta y sale con 3', async () => {
+    vi.mocked(loadConfig).mockReturnValue(conPolitica(true))
+    const exitSpy = vi
+      .spyOn(process, 'exit')
+      .mockImplementation((() => undefined) as never)
+
+    await runAgent('drive-organize')
+
+    expect(mockApplyOrganizePlan).not.toHaveBeenCalled()
+    expect(exitSpy).toHaveBeenCalledWith(3)
+    expect(mockLogFns.error).toHaveBeenCalledWith(
+      expect.stringContaining('Sin ejecutar'),
+    )
+    exitSpy.mockRestore()
+  })
+
+  it('con la clase autorizada, el objetivo sí se ejecuta', async () => {
+    vi.mocked(loadConfig).mockReturnValue(conPolitica(false))
+    mockApplyOrganizePlan.mockReturnValue({ moved: 0, skipped: 0, failed: 0, results: [] })
+
+    await runAgent('drive-organize')
+
+    expect(mockApplyOrganizePlan).toHaveBeenCalled()
+  })
+
+  it('en modo seco no pide aprobación: no toca nada', async () => {
+    vi.mocked(loadConfig).mockReturnValue({
+      ...conPolitica(true),
+      agent: { ...defaultConfig.agent, dryRun: true },
+    })
+
+    await runAgent('drive-organize')
+
+    expect(mockApplyOrganizePlan).not.toHaveBeenCalled()
+    expect(mockLogFns.info).toHaveBeenCalledWith(
+      'drive-organize plan (dry-run)',
+      expect.anything(),
+    )
+  })
+
+  it('un objetivo de solo lectura no pide aprobación', async () => {
+    vi.mocked(loadConfig).mockReturnValue(conPolitica(true))
+
+    await runAgent('suite-status')
+
+    expect(mockLogFns.info).toHaveBeenCalledWith('suite status', expect.anything())
   })
 })

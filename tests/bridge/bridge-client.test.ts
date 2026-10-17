@@ -177,7 +177,7 @@ describe('S04 — health: Bridge corriendo pero no autenticado', () => {
 })
 
 describe('S05 — info: sesión activa', () => {
-  it('parsea user, version y bridgePassword del output CLI', async () => {
+  it('parsea user, version y puertos, y NO propaga la contraseña (F04)', async () => {
     const infoOutput = [
       'User: user@proton.me',
       'Bridge version: 3.15.0',
@@ -193,9 +193,12 @@ describe('S05 — info: sesión activa', () => {
 
     expect(info.user).toBe('user@proton.me')
     expect(info.version).toBe('3.15.0')
-    expect(info.bridgePassword).toBe('abc123def456')
     expect(info.imapPort).toBe(1143)
     expect(info.smtpPort).toBe(1025)
+    // `bridge info` imprime la contraseña del Bridge; el DTO público no puede
+    // contenerla porque se serializa hacia el modelo.
+    expect(JSON.stringify(info)).not.toContain('abc123def456')
+    expect(Object.keys(info)).not.toContain('bridgePassword')
   })
 })
 
@@ -629,7 +632,7 @@ describe('R4 — info: regex parcial (solo algunos campos)', () => {
     const info = await client.info()
     expect(info.user).toBe('u@proton.me')
     expect(info.version).toBeUndefined()
-    expect(info.bridgePassword).toBeUndefined()
+    expect(Object.keys(info)).not.toContain('bridgePassword')
     expect(info.imapPort).toBeUndefined()
     expect(info.smtpPort).toBeUndefined()
   })

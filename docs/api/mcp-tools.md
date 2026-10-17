@@ -739,7 +739,7 @@ hints) so MCP clients can reason about effects before invoking.
 **Title:** Generate a secure password
 **Hints:** destructive: true · openWorld: true
 
-**Description:** Generates a strong random password and saves it to the Proton Pass store.
+**Description:** Generates a strong random password and saves it to the Proton Pass store. Refuses to overwrite an existing entry unless overwrite=true is set explicitly.
 
 **Input parameters:**
 
@@ -747,6 +747,7 @@ hints) so MCP clients can reason about effects before invoking.
 |---|---|---|---|---|
 | `path` | string | required |  |  |
 | `length` | integer | required | `24` |  |
+| `overwrite` | boolean | required | `false` | Explicitly replace an existing entry. Leaves a backup copy of the previous ciphertext. Default: false (no-clobber). |
 
 
 
@@ -766,16 +767,15 @@ _This tool takes no arguments._
 ### `proton_pass_insert` {#protonpassinsert}
 
 **Title:** Insert a secret into Proton Pass store
-**Hints:** readOnly: false · destructive: false · idempotent: true · openWorld: false
+**Hints:** readOnly: false · destructive: true · idempotent: false · openWorld: false
 
-**Description:** Stores a new entry. Never logs nor returns the secret value.
+**Description:** Not available in this profile: storing a secret would make it travel through the model. Run `pass insert <path>` on the machine instead.
 
 **Input parameters:**
 
 | Parameter | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `path` | string | required |  | Entry path, e.g. proton/bridge/api-key |
-| `secret` | string | required |  | The secret value to store. |
 
 
 
@@ -831,7 +831,7 @@ _This tool takes no arguments._
 ### `proton_calendar_list_events` {#protoncalendarlistevents}
 
 **Title:** proton_calendar_list_events
-**Hints:** readOnly: true · openWorld: true
+**Hints:** readOnly: true · destructive: false · openWorld: true
 
 **Description:** [STUB] proton_calendar_list_events — E2E-encrypted sync, no CalDAV.
 
@@ -844,7 +844,7 @@ _This tool takes no arguments._
 ### `proton_calendar_create_event` {#protoncalendarcreateevent}
 
 **Title:** proton_calendar_create_event
-**Hints:** readOnly: true · openWorld: true
+**Hints:** readOnly: false · destructive: false · openWorld: true
 
 **Description:** [STUB] proton_calendar_create_event — E2E-encrypted sync, no CalDAV.
 
@@ -857,7 +857,7 @@ _This tool takes no arguments._
 ### `proton_calendar_list_calendars` {#protoncalendarlistcalendars}
 
 **Title:** proton_calendar_list_calendars
-**Hints:** readOnly: true · openWorld: true
+**Hints:** readOnly: true · destructive: false · openWorld: true
 
 **Description:** [STUB] proton_calendar_list_calendars — E2E-encrypted sync, no CalDAV.
 
@@ -991,9 +991,9 @@ _This tool takes no arguments._
 ### `proton_drive_organize` {#protondriveorganize}
 
 **Title:** Organize files in Proton Drive
-**Hints:** readOnly: false · destructive: false · idempotent: false · openWorld: true
+**Hints:** readOnly: false · destructive: true · idempotent: false · openWorld: true
 
-**Description:** Analyzes the staging directory and moves files into a structured folder layout (by type). Dry-run by default.
+**Description:** Analyzes the staging directory and moves files into a structured folder layout (by type). Dry-run by default. Never overwrites: colliding destinations are rejected unless strategy="rename".
 
 **Input parameters:**
 
@@ -1001,6 +1001,7 @@ _This tool takes no arguments._
 |---|---|---|---|---|
 | `dry_run` | boolean | required | `true` | If true, only shows the plan without moving files. |
 | `staging_dir` | string | optional |  |  |
+| `strategy` | string | required | `"reject"` | What to do when the destination is taken: reject (default, no-clobber) or rename (disambiguate). |
 
 
 
@@ -1039,7 +1040,7 @@ _This tool takes no arguments._
 ### `proton_drive_download` {#protondrivedownload}
 
 **Title:** Download from Proton Drive to staging
-**Hints:** readOnly: false · destructive: false · idempotent: true · openWorld: true
+**Hints:** readOnly: false · destructive: false · idempotent: false · openWorld: true
 
 **Description:** Downloads a remote Proton Drive path into the local staging directory using the proton-drive CLI. Idempotent.
 
@@ -1071,7 +1072,7 @@ _This tool takes no arguments._
 ### `proton_drive_share` {#protondriveshare}
 
 **Title:** Share a Proton Drive path
-**Hints:** readOnly: false · destructive: false · idempotent: true · openWorld: true
+**Hints:** readOnly: false · destructive: true · idempotent: false · openWorld: true
 
 **Description:** Invites a Proton user to collaborate on a remote path using the proton-drive CLI.
 
@@ -1103,7 +1104,7 @@ _This tool takes no arguments._
 ### `proton_drive_copy` {#protondrivecopy}
 
 **Title:** Copy files on Proton Drive
-**Hints:** readOnly: true · idempotent: true · openWorld: false
+**Hints:** readOnly: false · destructive: false · idempotent: false · openWorld: false
 
 **Description:** Copies a remote path using the proton-drive CLI.
 
@@ -1164,7 +1165,7 @@ _This tool takes no arguments._
 ### `proton_drive_auth_login` {#protondriveauthlogin}
 
 **Title:** Authenticate with Proton Drive
-**Hints:** readOnly: false · destructive: false · idempotent: true · openWorld: false
+**Hints:** readOnly: false · destructive: true · idempotent: false · openWorld: false
 
 **Description:** Attempts to authenticate with the proton-drive CLI. Since the CLI requires interactive credentials, the tool returns a command the user must run in their terminal.
 
@@ -1431,15 +1432,11 @@ _This tool takes no arguments._
 **Title:** Login to Bridge
 **Hints:** readOnly: false · destructive: true · openWorld: true
 
-**Description:** Performs interactive login against Proton Mail Bridge. Provide user and password; include TOTP if 2FA is required.
+**Description:** Logs in to Proton Mail Bridge using the credentials configured on this machine (PROTON_BRIDGE_PASS or a password-store reference). Takes no arguments: the password never travels through you, and the result contains metadata only.
 
 **Input parameters:**
 
-| Parameter | Type | Required | Default | Description |
-|---|---|---|---|---|
-| `user` | string | required |  |  |
-| `password` | string | required |  |  |
-| `totp` | string | optional |  |  |
+_This tool takes no arguments._
 
 
 
