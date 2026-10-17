@@ -26,7 +26,14 @@ export const MailBridgeSchema = z
     imapPort: z.number().int().positive().default(1143),
     smtpPort: z.number().int().positive().default(1025),
     from: z.email('PROTON_MAIL_FROM must be a valid email'),
+    /**
+     * Si es `true`, NO se valida el certificado del servidor. Viene a `true`
+     * por comodidad con el certificado autofirmado de Bridge en local, y por eso
+     * el servidor avisa en voz alta al arrancar (hallazgo F34).
+     */
     tlsInsecure: z.boolean().default(true),
+    /** Ruta absoluta al PEM con la CA de Bridge. Con esto se puede validar. */
+    caPath: z.string().optional(),
     smtpSecurity: z.enum(['starttls', 'implicit', 'plain']).default('starttls'),
   })
   .refine((data) => data.pass.length > 0 || !!data.passPath, {
@@ -51,6 +58,9 @@ export function parseBridgeConfig(env: NodeJS.ProcessEnv) {
     smtpPort: Number(env['PROTON_BRIDGE_SMTP_PORT'] ?? 1025),
     from: (env['PROTON_MAIL_FROM'] ?? env['PROTON_BRIDGE_USER'] ?? '').trim(),
     tlsInsecure: (env['PROTON_BRIDGE_TLS_INSECURE'] ?? 'true') === 'true',
+    ...(env['PROTON_BRIDGE_CA_PATH']
+      ? { caPath: env['PROTON_BRIDGE_CA_PATH'] }
+      : {}),
     smtpSecurity: (env['PROTON_BRIDGE_SMTP_SECURITY'] ?? 'starttls') as
       | 'starttls'
       | 'implicit'

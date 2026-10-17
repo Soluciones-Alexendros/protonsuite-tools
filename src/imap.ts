@@ -35,6 +35,7 @@ import {
 } from './addresses.js'
 import type { ResolvedBridgeConfig } from './config.js'
 import { IMAP_MAX_RETRIES, IMAP_RETRY_BASE_MS, IMAP_MAX_IDLE_MS } from './constants.js'
+import { buildTlsOptions } from './tls.js'
 
 export interface EmailSummary {
   uid: number
@@ -112,10 +113,13 @@ export class ImapClient {
       // e ImapFlow promueve automáticamente a TLS cuando el servidor anuncia
       // STARTTLS. Paridad con src/smtp.ts:50.
       secure: false,
-      // `rejectUnauthorized: false` necesario cuando Bridge usa cert
-      // autofirmado. En producción estricta se puede pinear la CA de
-      // Bridge vía `PROTON_BRIDGE_CA_PATH` (roadmap).
-      tls: { rejectUnauthorized: !this.cfg.tlsInsecure },
+      // EXIGIR STARTTLS. La documentación de ImapFlow es explícita: sin pedirlo
+      // (`doSTARTTLS` sin definir), si el servidor no lo ofrece la conexión
+      // sigue EN CLARO, y «puede exponer la conexión a un ataque de downgrade».
+      // Con `true`, si no hay STARTTLS la conexión falla (hallazgo F34).
+      doSTARTTLS: true,
+      // Con `PROTON_BRIDGE_CA_PATH` se valida de verdad. Sin ella se avisa.
+      tls: buildTlsOptions(this.cfg, this.log),
       auth: { user: this.cfg.user, pass: resolvedPass },
       // Delegamos el logger de imapflow a nuestro logger stderr para que
       // LOG_LEVEL=debug capture la conversación IMAP completa.

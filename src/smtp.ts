@@ -16,6 +16,7 @@ import type { IImapClient } from './clients/interfaces.js'
 import type { ResolvedBridgeConfig } from './config.js'
 import { SMTP_POOL_MAX_CONNECTIONS, SMTP_POOL_MAX_MESSAGES } from './constants.js'
 import type { EmailFull } from './imap.js'
+import { buildTlsOptions } from './tls.js'
 
 // Re-export para consumidores históricos (tests/smtp-helpers.test.ts) que los
 // importaban desde aquí antes de consolidarlos en addresses.ts.
@@ -53,6 +54,8 @@ export class SmtpClient {
     private readonly log: {
       info: (m: string, e?: unknown) => void
       debug: (m: string, e?: unknown) => void
+      // Hace falta para avisar de que no se valida el certificado (F34).
+      warn: (m: string, e?: unknown) => void
     },
   ) {}
 
@@ -65,7 +68,8 @@ export class SmtpClient {
       port: this.cfg.smtpPort,
       secure: security === 'implicit',
       requireTLS: security === 'starttls',
-      tls: { rejectUnauthorized: !this.cfg.tlsInsecure },
+      // Mismas opciones que IMAP: CA si está configurada, aviso si no se valida.
+      tls: buildTlsOptions(this.cfg, this.log),
       auth: { user: this.cfg.user, pass: resolvedPass },
       pool: true,
       maxConnections: SMTP_POOL_MAX_CONNECTIONS,
