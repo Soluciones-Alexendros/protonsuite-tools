@@ -89,12 +89,12 @@
     "prepare": "husky"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@modelcontextprotocol/sdk": "^1.31.0",
     "express": "^5.2.1",
     "express-rate-limit": "^8.4.1",
     "imapflow": "^1.6.6",
-    "mailparser": "^3.9.12",
-    "nodemailer": "^9.0.3",
+    "mailparser": "^3.9.40",
+    "nodemailer": "^10.1.2",
     "zod": "^4.3.6"
   },
   "devDependencies": {
@@ -109,7 +109,6 @@
     "@types/express": "^5.0.6",
     "@types/mailparser": "^3.4.6",
     "@types/node": "^22.20.1",
-    "@types/nodemailer": "^6.4.17",
     "@types/supertest": "^7.2.1",
     "@vitest/coverage-v8": "^3.2.7",
     "eslint": "^9.39.4",
