@@ -125,9 +125,16 @@ Evidencia recogida para la decisión:
 - P04-O01 ownership de dependencias (F19) · P04-O02 hardening HTTP (F20–F23, F27, F28)
 - P04-O03 supervisor de procesos (F24)
 
-## P05 — Integraciones reales (PR-05..07) · `proposed`
-- P05-O01 Bridge y TLS (F12–F15, F34) · P05-O02 backends de secretos (F07–F11)
-- P05-O03 Drive CLI y auth (F16, F17) · P05-O04 Mail, adjuntos y cachés (F26)
+## P05 — Integraciones reales (PR-05..07) · `in_progress`
+- [x] P05-O01 (TLS, F34): CA conectada de verdad (`PROTON_BRIDGE_CA_PATH`), aviso
+      en voz alta cuando no se valida el certificado, y `doSTARTTLS: true` en
+      IMAP para que un downgrade falle en vez de seguir en claro
+- [ ] P05-O01 (resto): F12 (binario no resuelto en PATH), F13 (host/puertos
+      fijos), F14 (estado del proceso confundido con autenticación), F15
+      (comando reenviado al reconocer un prompt)
+- [ ] P05-O02 backends de secretos (F07–F11)
+- [ ] P05-O03 Drive CLI y auth (F16, F17)
+- [ ] P05-O04 Mail, adjuntos y cachés (F26)
 
 ## P06 — Contrato completo MCP (PR-08) · `proposed`
 - P06-O01 inventario de tools: **F18 corregido** (gating por producto); falta el

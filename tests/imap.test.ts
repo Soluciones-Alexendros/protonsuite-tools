@@ -10,6 +10,9 @@
  * caída, mailbox inexistente, fetchOne nulo). Aquí ejercitamos la clase
  * directamente, no a través del `McpServer`, para cubrir CADA método público.
  */
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import type { ResolvedBridgeConfig } from '../src/config.js'
 import { ImapClient } from '../src/imap.js'
@@ -47,6 +50,7 @@ const imapState = {
   fetchOneShouldThrow: false,
   // Espías de release de lock
   lockReleases: 0,
+  lastOptions: null as Record<string, unknown> | null,
 }
 
 // Parsed mail devuelto por simpleParser (mutable para casos borde).
@@ -55,6 +59,11 @@ const parseError: { value: Error | null } = { value: null }
 
 vi.mock('imapflow', () => {
   class ImapFlow {
+    // Se guardan las opciones para poder afirmar qué configuración de TLS se
+    // pide de verdad (hallazgo F34).
+    constructor(options: unknown) {
+      imapState.lastOptions = options as Record<string, unknown>
+    }
     get usable() { return imapState.usable }
     on() {}
     connect() {
@@ -910,5 +919,54 @@ describe('ImapClient · envelope/address parsing edge cases', () => {
     expect(res.items[0].uid).toBe(5)
     expect(res.items[0].from).toBeUndefined()
     expect(res.items[0].to).toEqual([])
+  })
+})
+
+// ===========================================================================
+// F34 — TLS: STARTTLS exigido y CA conectada
+// ===========================================================================
+
+describe('ImapClient · TLS', () => {
+  const PEM = [
+    '-----BEGIN CERTIFICATE-----',
+    'MIIBkTCB+wIJAJ000000000000000000000000000000000000000000000',
+    '-----END CERTIFICATE-----',
+  ].join('\n')
+
+  it('EXIGE STARTTLS: sin él la conexión falla, no sigue en claro', async () => {
+    const client = new ImapClient(bridgeCfg, silentLog as never)
+    await client.connect()
+
+    expect(imapState.lastOptions?.['doSTARTTLS']).toBe(true)
+    expect(imapState.lastOptions?.['secure']).toBe(false)
+  })
+
+  it('sin CA, no valida el certificado (y el logger lo avisa)', async () => {
+    const client = new ImapClient(bridgeCfg, silentLog as never)
+    await client.connect()
+
+    const tls = imapState.lastOptions?.['tls'] as { rejectUnauthorized: boolean; ca?: string[] }
+    expect(tls.rejectUnauthorized).toBe(false)
+    expect(tls.ca).toBeUndefined()
+  })
+
+  it('con CA configurada, la usa y valida', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'imap-tls-'))
+    const caPath = join(dir, 'ca.pem')
+    writeFileSync(caPath, PEM)
+
+    try {
+      const client = new ImapClient(
+        ({ ...bridgeCfg, tlsInsecure: false, caPath }),
+        silentLog as never,
+      )
+      await client.connect()
+
+      const tls = imapState.lastOptions?.['tls'] as { rejectUnauthorized: boolean; ca?: string[] }
+      expect(tls.rejectUnauthorized).toBe(true)
+      expect(tls.ca).toEqual([PEM])
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
   })
 })

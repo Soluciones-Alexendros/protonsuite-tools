@@ -34,6 +34,7 @@ function makeCfg(overrides?: Partial<ResolvedBridgeConfig>): ResolvedBridgeConfi
 }
 
 const silentLog = {
+  warn: vi.fn(),
   info: vi.fn(),
   debug: vi.fn(),
 };
