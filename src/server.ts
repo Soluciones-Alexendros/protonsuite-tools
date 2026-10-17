@@ -30,7 +30,7 @@ import {
   type ToolHandler,
 } from './authz/index.js'
 import { BridgeClient } from './bridge/bridge-client.js'
-import { type createLogger, type Config } from './config.js'
+import { secretsFromModel, type createLogger, type Config } from './config.js'
 import { DriveClient } from './drive.js'
 import { ImapClient } from './imap.js'
 import { PassClient } from './pass.js'
@@ -163,10 +163,30 @@ export function buildServer(
 
   if (cfg.products.mail.enabled) {
     const bridgeClient = new BridgeClient('protonmail-bridge-core', log)
+    const totpPath = bridgeCfg.totpPath
+    const totpResolver =
+      cfg.products.pass.enabled && totpPath
+        ? async () => {
+            const client = new PassClient(
+              {
+                storeDir: cfg.products.pass.storeDir,
+                backend: cfg.products.pass.backend ?? 'pass',
+              },
+              log,
+            )
+            return client.get(totpPath)
+          }
+        : undefined
     registerBridgeTools(
       (name, config, cb) => server.registerTool(name, config, cb),
       bridgeClient,
       log,
+      {
+        secretsFromModel: secretsFromModel(cfg),
+        bridgeUser: bridgeCfg.user,
+        resolvePassword: passwordResolver,
+        ...(totpResolver !== undefined ? { resolveTotp: totpResolver } : {}),
+      },
     )
   }
 

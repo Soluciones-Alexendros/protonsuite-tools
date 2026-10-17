@@ -179,6 +179,13 @@ beforeEach(() => {
   capturedTools.clear();
 });
 
+/** Modo antiguo declarado a propósito: aquí se prueba el comportamiento, no el control. */
+const LEGACY_BRIDGE_DEPS = {
+  secretsFromModel: true,
+  bridgeUser: "legacy@proton.me",
+  resolvePassword: async () => "legacy-pass",
+} as const;
+
 describe("registerBridgeTools — handlers", () => {
   it("health handler with json response_format", async () => {
     const client = new BridgeClient("/bin/fake", silentLog);
@@ -191,7 +198,7 @@ describe("registerBridgeTools — handlers", () => {
       authOk: true,
     });
 
-    registerBridgeTools(mockRegister, client, silentLog);
+    registerBridgeTools(mockRegister, client, silentLog, LEGACY_BRIDGE_DEPS);
     const tool = capturedTools.get("proton_bridge_health")!;
     const result = await tool.handler({ response_format: "json" });
 
@@ -214,7 +221,7 @@ describe("registerBridgeTools — handlers", () => {
       authOk: true,
     });
 
-    registerBridgeTools(mockRegister, client, silentLog);
+    registerBridgeTools(mockRegister, client, silentLog, LEGACY_BRIDGE_DEPS);
     const tool = capturedTools.get("proton_bridge_health")!;
     const result = await tool.handler({ response_format: "markdown" });
 
@@ -236,7 +243,7 @@ describe("registerBridgeTools — handlers", () => {
       error: "Bridge process not running",
     });
 
-    registerBridgeTools(mockRegister, client, silentLog);
+    registerBridgeTools(mockRegister, client, silentLog, LEGACY_BRIDGE_DEPS);
     const tool = capturedTools.get("proton_bridge_health")!;
     const result = await tool.handler({ response_format: "markdown" });
 
@@ -256,7 +263,7 @@ describe("registerBridgeTools — handlers", () => {
       authOk: true,
     });
 
-    registerBridgeTools(mockRegister, client, silentLog);
+    registerBridgeTools(mockRegister, client, silentLog, LEGACY_BRIDGE_DEPS);
     const tool = capturedTools.get("proton_bridge_status")!;
     const result = await tool.handler({ response_format: "json" });
 
@@ -277,7 +284,7 @@ describe("registerBridgeTools — handlers", () => {
       authOk: true,
     });
 
-    registerBridgeTools(mockRegister, client, silentLog);
+    registerBridgeTools(mockRegister, client, silentLog, LEGACY_BRIDGE_DEPS);
     const tool = capturedTools.get("proton_bridge_status")!;
     const result = await tool.handler({ response_format: "markdown" });
 
@@ -297,7 +304,7 @@ describe("registerBridgeTools — handlers", () => {
       smtpPort: 1025,
     });
 
-    registerBridgeTools(mockRegister, client, silentLog);
+    registerBridgeTools(mockRegister, client, silentLog, LEGACY_BRIDGE_DEPS);
     const tool = capturedTools.get("proton_bridge_info")!;
     const result = await tool.handler({});
 
@@ -313,7 +320,7 @@ describe("registerBridgeTools — handlers", () => {
     // eslint-disable-next-line @typescript-eslint/unbound-method
     vi.mocked(client.login).mockResolvedValue({ ok: true, message: "logged in" });
 
-    registerBridgeTools(mockRegister, client, silentLog);
+    registerBridgeTools(mockRegister, client, silentLog, LEGACY_BRIDGE_DEPS);
     const tool = capturedTools.get("proton_bridge_login")!;
     const result = await tool.handler({ user: "u@proton.me", password: "pwd" });
 
@@ -332,7 +339,7 @@ describe("registerBridgeTools — handlers", () => {
       needs2FA: true,
     });
 
-    registerBridgeTools(mockRegister, client, silentLog);
+    registerBridgeTools(mockRegister, client, silentLog, LEGACY_BRIDGE_DEPS);
     const tool = capturedTools.get("proton_bridge_login")!;
     const result = await tool.handler({
       user: "u@proton.me",
@@ -352,7 +359,7 @@ describe("registerBridgeTools — handlers", () => {
     // eslint-disable-next-line @typescript-eslint/unbound-method
     vi.mocked(client.logout).mockResolvedValue({ ok: true });
 
-    registerBridgeTools(mockRegister, client, silentLog);
+    registerBridgeTools(mockRegister, client, silentLog, LEGACY_BRIDGE_DEPS);
     const tool = capturedTools.get("proton_bridge_logout")!;
     const result = await tool.handler({});
 
@@ -365,7 +372,7 @@ describe("registerBridgeTools — handlers", () => {
     // eslint-disable-next-line @typescript-eslint/unbound-method
     vi.mocked(client.logout).mockResolvedValue({ ok: false });
 
-    registerBridgeTools(mockRegister, client, silentLog);
+    registerBridgeTools(mockRegister, client, silentLog, LEGACY_BRIDGE_DEPS);
     const tool = capturedTools.get("proton_bridge_logout")!;
     const result = await tool.handler({});
 
@@ -380,7 +387,7 @@ describe("registerBridgeTools — handlers", () => {
       { user: "u@proton.me", state: "connected" },
     ]);
 
-    registerBridgeTools(mockRegister, client, silentLog);
+    registerBridgeTools(mockRegister, client, silentLog, LEGACY_BRIDGE_DEPS);
     const tool = capturedTools.get("proton_bridge_accounts")!;
     const result = await tool.handler({ response_format: "json" });
 
@@ -394,7 +401,7 @@ describe("registerBridgeTools — handlers", () => {
     // eslint-disable-next-line @typescript-eslint/unbound-method
     vi.mocked(client.listAccounts).mockResolvedValue([]);
 
-    registerBridgeTools(mockRegister, client, silentLog);
+    registerBridgeTools(mockRegister, client, silentLog, LEGACY_BRIDGE_DEPS);
     const tool = capturedTools.get("proton_bridge_accounts")!;
     const result = await tool.handler({ response_format: "markdown" });
 
@@ -410,7 +417,7 @@ describe("registerBridgeTools — handlers", () => {
       { user: "u2@proton.me", state: "disconnected" },
     ]);
 
-    registerBridgeTools(mockRegister, client, silentLog);
+    registerBridgeTools(mockRegister, client, silentLog, LEGACY_BRIDGE_DEPS);
     const tool = capturedTools.get("proton_bridge_accounts")!;
     const result = await tool.handler({ response_format: "markdown" });
 
@@ -429,7 +436,7 @@ describe("registerBridgeTools — handlers", () => {
       smtpPort: undefined as unknown as number,
     });
 
-    registerBridgeTools(mockRegister, client, silentLog);
+    registerBridgeTools(mockRegister, client, silentLog, LEGACY_BRIDGE_DEPS);
     const tool = capturedTools.get("proton_bridge_info")!;
     const result = await tool.handler({});
 
@@ -450,7 +457,7 @@ describe("registerBridgeTools — handlers", () => {
       needs2FA: false,
     });
 
-    registerBridgeTools(mockRegister, client, silentLog);
+    registerBridgeTools(mockRegister, client, silentLog, LEGACY_BRIDGE_DEPS);
     const tool = capturedTools.get("proton_bridge_login")!;
     const result = await tool.handler({ user: "u@proton.me", password: "bad" });
 

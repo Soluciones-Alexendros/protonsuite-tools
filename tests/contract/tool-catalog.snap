@@ -681,23 +681,13 @@
     "inputSchema": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "properties": {
-        "overwrite": {
-          "default": false,
-          "description": "Explicitly replace an existing entry. Leaves a backup copy of the previous ciphertext. Default: false (no-clobber).",
-          "type": "boolean",
-        },
         "path": {
           "description": "Entry path, e.g. proton/bridge/api-key",
-          "type": "string",
-        },
-        "secret": {
-          "description": "The secret value to store.",
           "type": "string",
         },
       },
       "required": [
         "path",
-        "secret",
       ],
       "type": "object",
     },
@@ -1295,23 +1285,7 @@
     },
     "inputSchema": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "properties": {
-        "password": {
-          "type": "string",
-        },
-        "totp": {
-          "type": "string",
-        },
-        "user": {
-          "format": "email",
-          "pattern": "^(?!\.)(?!.*\.\.)([A-Za-z0-9_'+\-\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\-]*\.)+[A-Za-z]{2,}$",
-          "type": "string",
-        },
-      },
-      "required": [
-        "user",
-        "password",
-      ],
+      "properties": {},
       "type": "object",
     },
     "name": "proton_bridge_login",

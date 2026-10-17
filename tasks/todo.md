@@ -100,8 +100,15 @@ Evidencia recogida para la decisión:
         en lo que respecta a las herramientas publicadas)
   - [ ] Conectar también el CLI del agente y los jobs
   - [ ] Declarar política en los E2E que escriben
-- P02-O02 auditoría durable + redacción (F42)
-- P02-O03 secretos fuera del modelo (F06) — **P1**
+- [x] P02-O02 auditoría durable + redacción (F42): el diario lleva versión de
+      esquema y rota por tamaño; `audit()` devuelve acuse y deja visible el fallo
+      en vez de tragárselo; `audit.flush()` drena al apagar; el logger REDACT A
+      en el último punto común (campos sensibles, anidados, listas, errores y
+      credenciales embebidas en texto)
+- [x] P02-O03 secretos fuera del modelo (F06): `proton_bridge_login` ya no acepta
+      usuario, contraseña ni TOTP en el perfil seguro; `proton_pass_insert` se
+      niega y explica cómo hacerlo desde el terminal. `SECRETS_FROM_MODEL=true`
+      restaura el modo antiguo, declarado y documentado como no seguro
 
 ## P03 — Filesystem seguro (PR-03) · `proposed`
 - P03-O01 sandbox local (F05) · P03-O02 recorrido/hashing acotados (F25)

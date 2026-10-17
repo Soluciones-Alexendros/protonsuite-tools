@@ -42,11 +42,27 @@ const STATUS_FIELDS = [...HEALTH_FIELDS, 'user', 'version', 'imapPort', 'smtpPor
 
 const INFO_FIELDS = ['user', 'version', 'imapPort', 'smtpPort'] as const
 
+export interface BridgeToolDeps {
+  /**
+   * `true` permite que el modelo transporte la contraseña y el TOTP.
+   * `false` (por defecto) los lee de su origen configurado y solo devuelve
+   * metadatos: el secreto principal no debe pasar por el cliente, el transporte
+   * ni los logs del modelo (hallazgo F06).
+   */
+  readonly secretsFromModel: boolean;
+  /** Credenciales configuradas, para el modo sin secretos en el modelo. */
+  readonly bridgeUser: string;
+  readonly resolvePassword: () => Promise<string>;
+  readonly resolveTotp?: () => Promise<string | undefined>;
+}
+
 export function registerBridgeTools(
   register: RegisterFn,
   bridge: BridgeClient,
   _log: Logger,
+  deps?: BridgeToolDeps,
 ) {
+  const secretsFromModel = deps?.secretsFromModel ?? false;
   register(
     'proton_bridge_health',
     {
@@ -159,20 +175,33 @@ export function registerBridgeTools(
     'proton_bridge_login',
     {
       title: 'Login to Bridge',
-      description: 'Performs interactive login against Proton Mail Bridge. Provide user and password; include TOTP if 2FA is required.',
-      inputSchema: {
-        user: z.email(),
-        password: z.string(),
-        totp: z.string().optional(),
-      },
+      description: secretsFromModel
+        ? 'Performs interactive login against Proton Mail Bridge. Provide user and password; include TOTP if 2FA is required. NOT SECURE: the password travels through you.'
+        : 'Logs in to Proton Mail Bridge using the credentials configured on this machine (PROTON_BRIDGE_PASS or a password-store reference). Takes no arguments: the password never travels through you, and the result contains metadata only.',
+      inputSchema: secretsFromModel
+        ? {
+            user: z.email(),
+            password: z.string(),
+            totp: z.string().optional(),
+          }
+        : {},
       annotations: {
         readOnlyHint: false,
         destructiveHint: true,
         openWorldHint: true,
       },
     },
-    async ({ user, password, totp }) => {
-      const result = await bridge.login(user, password, totp)
+    // El handler recibe los argumentos ya validados; en modo seguro el esquema
+    // está vacío, así que se leen del origen configurado.
+    (async (args: Record<string, unknown>) => {
+      const secrets = await resolveLoginSecrets(args, deps)
+      if (!secrets.ok) {
+        return {
+          isError: true,
+          content: [{ type: 'text', text: secrets.reason }],
+        }
+      }
+      const result = await bridge.login(secrets.user, secrets.password, secrets.totp)
       return {
         content: [
           {
@@ -182,9 +211,14 @@ export function registerBridgeTools(
               : `Login failed: ${result.message}${result.needs2FA ? ' (2FA required)' : ''}`,
           },
         ],
-        structuredContent: asStructured(result),
+        // Solo metadatos: nunca la contraseña ni el TOTP.
+        structuredContent: asStructured({
+          ok: result.ok,
+          message: result.message,
+          needs2FA: result.needs2FA === true,
+        }),
       }
-    },
+    }) as never,
   )
 
   register(
@@ -241,4 +275,75 @@ export function registerBridgeTools(
       return { content: [{ type: 'text', text: lines.join('\n') }] }
     },
   )
+}
+
+/** Resultado de resolver las credenciales de login. */
+type LoginSecrets =
+  | { ok: true; user: string; password: string; totp: string | undefined }
+  | { ok: false; reason: string }
+
+/**
+ * Resuelve las credenciales de login.
+ *
+ * En modo seguro NO se aceptan argumentos: se leen del origen configurado, así
+ * que la contraseña nunca pasa por el cliente ni por el modelo (hallazgo F06).
+ */
+async function resolveLoginSecrets(
+  args: Record<string, unknown>,
+  deps?: BridgeToolDeps,
+): Promise<LoginSecrets> {
+  if (deps?.secretsFromModel === true) {
+    const user = args['user']
+    const password = args['password']
+    if (typeof user !== 'string' || typeof password !== 'string') {
+      return { ok: false, reason: 'Faltan user o password.' }
+    }
+    return {
+      ok: true,
+      user,
+      password,
+      totp: typeof args['totp'] === 'string' ? args['totp'] : undefined,
+    }
+  }
+
+  if (!deps) {
+    return { ok: false, reason: 'Falta la configuración del Bridge en el servidor.' }
+  }
+  if (deps.bridgeUser.length === 0) {
+    return {
+      ok: false,
+      reason:
+        'No hay usuario de Bridge configurado. Define PROTON_BRIDGE_USER en el entorno del servidor.',
+    }
+  }
+
+  let password: string
+  try {
+    password = await deps.resolvePassword()
+  } catch (err) {
+    return {
+      ok: false,
+      reason: `No se pudo obtener la contraseña del Bridge desde su origen configurado: ${
+        err instanceof Error ? err.message : String(err)
+      }`,
+    }
+  }
+  if (password.length === 0) {
+    return {
+      ok: false,
+      reason:
+        'La contraseña del Bridge está vacía. Define PROTON_BRIDGE_PASS o PROTON_BRIDGE_PASS_PATH.',
+    }
+  }
+
+  let totp: string | undefined
+  if (deps.resolveTotp) {
+    try {
+      totp = await deps.resolveTotp()
+    } catch {
+      // Sin TOTP se intenta igualmente; el CLI dirá si hacía falta.
+      totp = undefined
+    }
+  }
+  return { ok: true, user: deps.bridgeUser, password, totp }
 }

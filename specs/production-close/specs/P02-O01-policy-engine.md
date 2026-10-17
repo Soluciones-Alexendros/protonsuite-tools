@@ -212,3 +212,35 @@ Hallazgos corregidos de paso, encontrados por las propias pruebas:
 - `findClaimable` y `pendingIds` lanzaban si el almacén no se podía preparar, en
   vez de devolver «no hay nada». Un problema de entorno se convertía en un error
   opaco del protocolo.
+
+---
+
+## P02-O02 y P02-O03 (fase P02 completa)
+
+**P02-O02 — auditoría durable y redacción (F42).** Lo que se corrigió:
+
+- `audit()` era «best effort»: se lanzaba sin esperar y se tragaba el error. Si
+  el disco estaba lleno, la operación se ejecutaba y no quedaba rastro. Ahora
+  devuelve acuse, el fallo queda visible en el log y `flush()` drena al apagar.
+- El logger **no redactaba nada**: `safeStringify` volcaba el objeto tal cual.
+  La redacción vive ahora en el último punto común (el logger), así que quien
+  loguee un secreto sin acordarse no abre un agujero. Cubre campos por nombre,
+  anidamiento, listas, errores y credenciales embebidas en texto libre.
+- El diario lleva `schemaVersion` en cada línea y rota por tamaño: un diario que
+  crece sin freno acaba llenando el disco y provoca justo el fallo que debe
+  evitar.
+
+**P02-O03 — secretos fuera del modelo (F06).**
+
+- `proton_bridge_login` ya no acepta `user`, `password` ni `totp` en el perfil
+  por defecto. Lee las credenciales de su origen configurado y devuelve solo
+  metadatos. El TOTP se puede resolver desde el almacén de secretos
+  (`PROTON_BRIDGE_TOTP_PATH`) sin que pase por el modelo.
+- `proton_pass_insert` se niega y explica cómo guardarlo desde el terminal, en
+  lugar de desaparecer sin más.
+- `SECRETS_FROM_MODEL=true` restaura el comportamiento antiguo. Está declarado y
+  documentado como **no seguro**, no como una opción equivalente.
+
+El snapshot del contrato deja constancia: en el perfil por defecto, los esquemas
+publicados ya no tienen `secret`, `password` ni `totp`. El modelo no puede
+enviarlos porque no existen en la superficie.

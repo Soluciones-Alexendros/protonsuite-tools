@@ -769,15 +769,13 @@ _This tool takes no arguments._
 **Title:** Insert a secret into Proton Pass store
 **Hints:** readOnly: false · destructive: true · idempotent: false · openWorld: false
 
-**Description:** Stores a new entry. Refuses to overwrite an existing entry unless overwrite=true is set explicitly. Never logs nor returns the secret value.
+**Description:** Not available in this profile: storing a secret would make it travel through the model. Run `pass insert <path>` on the machine instead.
 
 **Input parameters:**
 
 | Parameter | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `path` | string | required |  | Entry path, e.g. proton/bridge/api-key |
-| `secret` | string | required |  | The secret value to store. |
-| `overwrite` | boolean | required | `false` | Explicitly replace an existing entry. Leaves a backup copy of the previous ciphertext. Default: false (no-clobber). |
 
 
 
@@ -1434,15 +1432,11 @@ _This tool takes no arguments._
 **Title:** Login to Bridge
 **Hints:** readOnly: false · destructive: true · openWorld: true
 
-**Description:** Performs interactive login against Proton Mail Bridge. Provide user and password; include TOTP if 2FA is required.
+**Description:** Logs in to Proton Mail Bridge using the credentials configured on this machine (PROTON_BRIDGE_PASS or a password-store reference). Takes no arguments: the password never travels through you, and the result contains metadata only.
 
 **Input parameters:**
 
-| Parameter | Type | Required | Default | Description |
-|---|---|---|---|---|
-| `user` | string | required |  |  |
-| `password` | string | required |  |  |
-| `totp` | string | optional |  |  |
+_This tool takes no arguments._
 
 
 

@@ -36,6 +36,7 @@ import { DriveConfigSchema, parseDriveConfig } from './config/drive.js'
 import type { DriveConfig } from './config/drive.js'
 import { PassConfigSchema, parsePassConfig } from './config/pass.js'
 import type { PassConfig } from './config/pass.js'
+import { redact } from './security.js'
 
 // ---------------------------------------------------------------------------
 // ConfigSchema — composición de todos los productos + infraestructura.
@@ -117,6 +118,16 @@ const ConfigSchema = z.object({
       })
       .optional(),
   }),
+  /**
+   * Manejo de secretos.
+   *
+   * `fromModel: false` (por defecto) significa que el modelo NO transporta el
+   * secreto principal: las herramientas lo leen de su origen configurado y solo
+   * devuelven metadatos. Ponerlo a `true` restaura el comportamiento antiguo y
+   * NO es seguro: el secreto acaba en el cliente, en el transporte y en los
+   * logs del modelo (hallazgo F06).
+   */
+  secrets: z.object({ fromModel: z.boolean().default(false) }).optional(),
   agent: z.object({
     dryRun: z.boolean().default(true),
     maxInspectEmails: z.number().int().positive().default(1000),
@@ -283,6 +294,7 @@ export function loadConfig(): Config {
     products: parseProductsConfig(env),
     transport: parseTransportConfig(env),
     alerts: parseAlertConfig(env),
+    secrets: { fromModel: readBool(env['SECRETS_FROM_MODEL'], false) },
     agent: parseAgentConfig(env),
     authz: parseAuthzConfig(env),
     logLevel: parseLogLevel(env),
@@ -317,6 +329,17 @@ export function isDryRun(cfg: Config): boolean {
   return cfg.agent.dryRun
 }
 
+/**
+ * ¿Se permite que el modelo transporte secretos?
+ *
+ * Cuando falta la configuración, la respuesta es NO: el valor seguro. Un literal
+ * de configuración incompleto no debe abrir la puerta a que el secreto principal
+ * circule por el cliente y los logs (hallazgo F06).
+ */
+export function secretsFromModel(cfg: Config): boolean {
+  return cfg.secrets?.fromModel ?? false
+}
+
 // -----------------------------------------------------------------------------
 // Logger
 // -----------------------------------------------------------------------------
@@ -347,10 +370,18 @@ export function createLogger(level: LogLevel) {
   }
 }
 
+/**
+ * Serializa para el log REDACTANDO antes.
+ *
+ * Este es el último punto común por el que pasa todo lo que se escribe en
+ * stderr, así que es el sitio correcto para la redacción: quien loguee algo con
+ * un secreto no tiene que acordarse de limpiarlo (hallazgo F42).
+ */
 function safeStringify(v: unknown): string {
   try {
-    return typeof v === 'string' ? v : JSON.stringify(v)
+    const limpio = redact(v)
+    return typeof limpio === 'string' ? limpio : JSON.stringify(limpio)
   } catch {
-    return String(v)
+    return '[no serializable]'
   }
 }

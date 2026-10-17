@@ -253,3 +253,11 @@ describe('blockedReason · cómo decide salir el CLI', () => {
     expect(blockedReason({ isError: true })).toBe('bloqueado')
   })
 })
+
+describe('blockedReason · sin ningún detalle', () => {
+  it('una denegación sin motivo ni texto sigue siendo un bloqueo', () => {
+    expect(
+      blockedReason({ isError: true, structuredContent: { status: 'denied' } }),
+    ).toBe('denegado')
+  })
+})

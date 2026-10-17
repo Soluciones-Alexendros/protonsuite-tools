@@ -29,7 +29,7 @@ export async function runAgent(
     dryRun: ctx.dryRun,
     description: describeGoal(goal),
   })
-  alerts.audit('agent-start', 'agent/executor', { goal, dryRun: ctx.dryRun })
+  void alerts.audit('agent-start', 'agent/executor', { goal, dryRun: ctx.dryRun })
 
   const handler = goalHandlers[goal]
   if (!handler) {
@@ -59,7 +59,7 @@ export async function runAgent(
     process.exit(3)
   }
 
-  alerts.audit('agent-end', 'agent/executor', { goal })
+  void alerts.audit('agent-end', 'agent/executor', { goal })
 }
 // ---------------------------------------------------------------------------
 
@@ -118,7 +118,7 @@ const goalHandlers: Record<string, GoalHandler> = {
       )
     } else {
       await applyOrganizationPlan(cfg, plan, log)
-      alerts.audit('organize-applied', 'agent/executor', {
+      void alerts.audit('organize-applied', 'agent/executor', {
         newFolders: plan.newFolders,
         folderProposals: plan.folderProposals.length,
         labelProposals: plan.labelProposals.length,
@@ -182,7 +182,7 @@ const goalHandlers: Record<string, GoalHandler> = {
         items: report.rotationPlan.length,
       })
     }
-    alerts.audit('pass-audit', 'agent/executor', {
+    void alerts.audit('pass-audit', 'agent/executor', {
       ...report,
       dryRun: ctx.dryRun,
       applied: 0,
@@ -201,7 +201,7 @@ const goalHandlers: Record<string, GoalHandler> = {
       duplicates: dups.length,
       obsoleteFiles: fmt.obsoleteFiles.length,
     })
-    alerts.audit('drive-audit', 'agent/executor', {
+    void alerts.audit('drive-audit', 'agent/executor', {
       totalFiles: inv.totalFiles,
       duplicates: dups.length,
       obsoleteFiles: fmt.obsoleteFiles.length,
@@ -233,7 +233,7 @@ const goalHandlers: Record<string, GoalHandler> = {
         skipped: applied.skipped,
         failed: applied.failed,
       })
-      alerts.audit('drive-organize-applied', 'agent/executor', {
+      void alerts.audit('drive-organize-applied', 'agent/executor', {
         moved: applied.moved,
         skipped: applied.skipped,
         failed: applied.failed,
@@ -250,7 +250,7 @@ const goalHandlers: Record<string, GoalHandler> = {
       process.exit(2)
     }
     log.info('drive-list ok', { entries: r.files.length })
-    alerts.audit('drive-list', 'agent/executor', { entries: r.files.length })
+    void alerts.audit('drive-list', 'agent/executor', { entries: r.files.length })
   },
 
   'drive-download': async ({ cfg, log, alerts }) => {
@@ -262,7 +262,7 @@ const goalHandlers: Record<string, GoalHandler> = {
       process.exit(2)
     }
     log.info('drive-download ok', { localPath: r.localPath })
-    alerts.audit('drive-download', 'agent/executor', { localPath: r.localPath })
+    void alerts.audit('drive-download', 'agent/executor', { localPath: r.localPath })
   },
 
   'drive-upload': async ({ cfg, log, alerts }) => {
@@ -274,7 +274,7 @@ const goalHandlers: Record<string, GoalHandler> = {
       process.exit(2)
     }
     log.info('drive-upload ok', { remotePath: r.remotePath })
-    alerts.audit('drive-upload', 'agent/executor', { remotePath: r.remotePath })
+    void alerts.audit('drive-upload', 'agent/executor', { remotePath: r.remotePath })
   },
 
   'suite-status': ({ cfg, log }) => {
@@ -296,7 +296,7 @@ const goalHandlers: Record<string, GoalHandler> = {
         : 'not installed'
       log.info('  ' + b.name + ': ' + status)
     }
-    alerts.audit('suite-manage', 'agent/executor', {
+    void alerts.audit('suite-manage', 'agent/executor', {
       totalBinaries: all.length,
       installed: all.filter((b) => b.installed).length,
       authenticated: all.filter((b) => b.authenticated).length,

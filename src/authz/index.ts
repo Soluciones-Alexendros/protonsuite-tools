@@ -42,7 +42,13 @@ export {
   type Grant,
 } from './approval-store.js';
 
-export { Journal, type JournalEntry, type JournalOutcome } from './journal.js';
+export {
+  JOURNAL_SCHEMA_VERSION,
+  Journal,
+  type JournalEntry,
+  type JournalOptions,
+  type JournalOutcome,
+} from './journal.js';
 
 export {
   blockedReason,

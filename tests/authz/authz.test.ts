@@ -304,3 +304,28 @@ describe('almacén de aprobaciones', () => {
     ).toEqual({ ok: false, reason: 'unknown-request' })
   })
 })
+
+describe('almacén · el actor también ata la aprobación', () => {
+  const reqInput = {
+    toolId: 'proton_send_email',
+    effectClass: 'write' as const,
+    scopes: ['mailbox'],
+    actor: 'alex',
+    sessionId: 's1',
+    args: { to: ['destino@proton.me'] },
+  }
+
+  it('no sirve para otro actor declarado', async () => {
+    const store = new ApprovalStore({ dir })
+    const req = await store.createRequest(reqInput)
+    store.approve(req.id, 'alex')
+
+    const claim = store.claim(req.id, {
+      toolId: reqInput.toolId,
+      args: reqInput.args,
+      actor: 'otra-persona',
+      sessionId: 's1',
+    })
+    expect(claim).toEqual({ ok: false, reason: 'actor-mismatch' })
+  })
+})
