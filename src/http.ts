@@ -25,7 +25,7 @@ import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import express, { type Express, type Request, type Response, type NextFunction } from "express";
 import { rateLimit, ipKeyGenerator } from "express-rate-limit";
-import { compareTokens, extractBearer } from "./auth.js";
+import { compareTokens, extractBearer, MIN_TOKEN_LENGTH } from "./auth.js";
 import type { Config } from "./config.js";
 import { getToolRateClass } from "./http-tool-rate.js";
 import {
@@ -36,6 +36,26 @@ import {
   mcpDryRunMode,
 } from "./utils/metrics.js";
 import { VERSION } from "./version.js";
+
+/** Tamaño máximo del cuerpo JSON-RPC. Se aplica ya autenticado. */
+const JSON_BODY_LIMIT = "25mb";
+
+/** Métodos JSON-RPC que se etiquetan en las métricas. El resto va a «other». */
+const KNOWN_RPC_METHODS = new Set([
+  "initialize",
+  "notifications/initialized",
+  "tools/list",
+  "tools/call",
+  "resources/list",
+  "resources/read",
+  "resources/templates/list",
+  "prompts/list",
+  "prompts/get",
+  "completion/complete",
+  "ping",
+  "logging/setLevel",
+  "unknown",
+]);
 
 interface Logger {
   debug: (m: string, e?: unknown) => void;
@@ -63,8 +83,19 @@ export function buildHttpApp(deps: HttpAppDeps): Express {
   const expectedToken = cfg.transport.authToken ?? "";
   const allowedOrigins = new Set(cfg.transport.allowedOrigins);
 
+  if (expectedToken.length === 0) {
+    throw new Error(
+      'HTTP mode requires MCP_AUTH_TOKEN. Sin token, la comparación de ' +
+        'credenciales vacías dejaba pasar cualquier petición sin cabecera (F28).',
+    );
+  }
+  if (expectedToken.length < MIN_TOKEN_LENGTH) {
+    throw new Error(
+      `MCP_AUTH_TOKEN debe tener al menos ${MIN_TOKEN_LENGTH} caracteres.`,
+    );
+  }
+
   const app = express();
-  app.use(express.json({ limit: "25mb" }));
 
   // Registro en memoria de sesiones activas. `lastUsed` alimenta la eviction.
   const sessions = new Map<string, { transport: StreamableHTTPServerTransport; server: McpServer; lastUsed: number }>();
@@ -141,10 +172,14 @@ export function buildHttpApp(deps: HttpAppDeps): Express {
 
   // Instrumentación Prometheus para requests MCP.
   // Captura method (del JSON-RPC body), status HTTP y duración.
-  app.use("/mcp", (req: Request, res: Response, next: NextFunction): void => {
+  function instrumentacion(req: Request, res: Response, next: NextFunction): void {
     const start = process.hrtime.bigint();
     const bodyObj = (req.body && typeof req.body === "object") ? req.body as Record<string, unknown> : null;
-    const rpcMethod = (bodyObj && typeof bodyObj["method"] === "string") ? bodyObj["method"] : "unknown";
+    // La etiqueta sale del CUERPO, así que hay que acotarla: un cliente puede
+    // mandar métodos inventados y hacer crecer el registro de métricas sin
+    // freno (hallazgo F22). Los conocidos se conservan; el resto, a «other».
+    const metodoBruto = (bodyObj && typeof bodyObj["method"] === "string") ? bodyObj["method"] : "unknown";
+    const rpcMethod = KNOWN_RPC_METHODS.has(metodoBruto) ? metodoBruto : "other";
     res.on("finish", () => {
       const durationSeconds = Number(process.hrtime.bigint() - start) / 1e9;
       const status = String(res.statusCode);
@@ -152,11 +187,56 @@ export function buildHttpApp(deps: HttpAppDeps): Express {
       mcpRequestDuration.observe({ transport: "http", method: rpcMethod }, durationSeconds);
     });
     next();
+  }
+
+  /**
+   * Límite barato por ORIGEN, antes de autenticar.
+   *
+   * El límite por token no sirve aquí: un atacante puede rotar tokens
+   * inventados y estrenar cubo en cada intento, así que nunca se le agota
+   * (hallazgo F20). Este va por IP y se gasta pase lo que pase.
+   */
+  const preAuthLimiter = rateLimit({
+    windowMs: 60_000,
+    limit: 300,
+    standardHeaders: "draft-7",
+    legacyHeaders: false,
+    keyGenerator: (req: Request) => ipKeyGenerator(req.ip ?? "") || "anon",
+    message: { error: "rate_limit_exceeded", tier: "pre-auth" },
   });
 
-  // Orden importa: rate-limit ANTES de auth. Así un atacante que bombardee
-  // con tokens inválidos también consume su cuota y deja de ser útil.
-  app.use("/mcp", tieredRateLimit, authMiddleware);
+  // ORDEN, y por qué:
+  //  1. CORS/preflight: los navegadores hacen OPTIONS sin Authorization; si
+  //     pasara por auth, abortarían antes del POST real.
+  //  2. Límite por IP: barato, antes de cualquier trabajo caro.
+  //  3. Auth: fallo cerrado.
+  //  4. Parseo del cuerpo: DESPUÉS de auth. Antes, cualquiera podía obligar al
+  //     servidor a parsear 25 MB sin credenciales (hallazgo F21).
+  //  5. Métricas y límites por token: ya sobre tráfico autenticado.
+  /**
+   * Anota los rechazos PREVIOS a autenticar, sin leer el cuerpo.
+   *
+   * Se pierde el detalle del método (no hay body parseado todavía), pero se
+   * conserva lo que importa para detectar un ataque: cuántos 401/403/429 se
+   * están produciendo. La etiqueta es fija, así que no crece la cardinalidad
+   * (hallazgo F22). Los requests autenticados los anota `instrumentacion`, que
+   * va después.
+   */
+  app.use("/mcp", (req: Request, res: Response, next: NextFunction): void => {
+    res.on("finish", () => {
+      const status = res.statusCode;
+      if (status === 401 || status === 403 || status === 429) {
+        mcpRequestsTotal.inc({
+          transport: "http",
+          method: "unauthenticated",
+          status: String(status),
+        });
+      }
+    });
+    next();
+  });
+
+  app.use("/mcp", preAuthLimiter, authMiddleware, express.json({ limit: JSON_BODY_LIMIT }), instrumentacion, tieredRateLimit);
 
   app.all("/mcp", async (req: Request, res: Response) => {
     const sessionId = (req.headers["mcp-session-id"] as string | undefined) ?? undefined;

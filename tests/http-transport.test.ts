@@ -46,7 +46,7 @@ function cfg(overrides: Partial<Config["transport"]> = {}): Config {
       kind: "http",
       httpHost: "127.0.0.1",
       httpPort: 8787,
-      authToken: "expected-token",
+      authToken: "expected-token-para-pruebas",
       allowedOrigins: [],
       ...overrides,
     },
@@ -105,7 +105,7 @@ describe("HTTP transport · auth and session lifecycle", () => {
     });
     const res = await request(app)
       .post("/mcp")
-      .set("Authorization", "Bearer expected-token")
+      .set("Authorization", "Bearer expected-token-para-pruebas")
       .set("Origin", "https://evil.com")
       .send({ jsonrpc: "2.0", id: 1, method: "initialize", params: {} });
     expect(res.status).toBe(403);
@@ -116,7 +116,7 @@ describe("HTTP transport · auth and session lifecycle", () => {
     const app = buildHttpApp({ buildServer: miniServer, cfg: cfg(), log: silent });
     const res = await request(app)
       .post("/mcp")
-      .set("Authorization", "Bearer expected-token")
+      .set("Authorization", "Bearer expected-token-para-pruebas")
       .send({ jsonrpc: "2.0", id: 1, method: "tools/list" });
     expect(res.status).toBe(400);
     expect(res.body?.error?.code).toBe(-32000);
@@ -126,7 +126,7 @@ describe("HTTP transport · auth and session lifecycle", () => {
     const app = buildHttpApp({ buildServer: miniServer, cfg: cfg(), log: silent });
     const res = await request(app)
       .post("/mcp")
-      .set("Authorization", "Bearer expected-token")
+      .set("Authorization", "Bearer expected-token-para-pruebas")
       .set("Accept", "application/json, text/event-stream")
       .send({
         jsonrpc: "2.0",
@@ -148,7 +148,7 @@ describe("HTTP transport · auth and session lifecycle", () => {
 
   it("ratelimit middleware is wired (sends a RateLimit* header on /mcp)", async () => {
     const app = buildHttpApp({ buildServer: miniServer, cfg: cfg(), log: silent });
-    const res = await request(app).post("/mcp").set("Authorization", "Bearer expected-token").send({ jsonrpc: "2.0", id: 1, method: "x" });
+    const res = await request(app).post("/mcp").set("Authorization", "Bearer expected-token-para-pruebas").send({ jsonrpc: "2.0", id: 1, method: "x" });
     const hasRateLimitHeader = Object.keys(res.headers).some((k) => k.toLowerCase().startsWith("ratelimit"));
     expect(hasRateLimitHeader).toBe(true);
   });
@@ -165,7 +165,7 @@ describe("HTTP transport · auth and session lifecycle", () => {
     for (let i = 0; i < 6; i++) {
       const res = await request(app)
         .post("/mcp")
-        .set("Authorization", "Bearer expected-token")
+        .set("Authorization", "Bearer expected-token-para-pruebas")
         .send(body);
       lastStatus = res.status;
       if (i < 5) {
@@ -188,7 +188,7 @@ describe("HTTP transport · auth and session lifecycle", () => {
     for (let i = 0; i < 31; i++) {
       const res = await request(app)
         .post("/mcp")
-        .set("Authorization", "Bearer expected-token")
+        .set("Authorization", "Bearer expected-token-para-pruebas")
         .send(body);
       lastStatus = res.status;
       if (i < 30) expect(res.status).not.toBe(429);
@@ -242,7 +242,7 @@ describe("CORS preflight", () => {
     const res = await request(app)
       .post("/mcp")
       .set("Origin", "https://app.example.com")
-      .set("Authorization", "Bearer expected-token")
+      .set("Authorization", "Bearer expected-token-para-pruebas")
       .send({ jsonrpc: "2.0", id: 1, method: "tools/list" });
     expect(res.headers["access-control-allow-origin"]).toBe("https://app.example.com");
     expect(res.headers.vary).toBe("Origin");
@@ -254,7 +254,7 @@ describe("Session lifecycle", () => {
     const app = buildHttpApp({ buildServer: miniServer, cfg: cfg(), log: silent });
     const res = await request(app)
       .post("/mcp")
-      .set("Authorization", "Bearer expected-token")
+      .set("Authorization", "Bearer expected-token-para-pruebas")
       .set("Accept", "application/json, text/event-stream")
       .send({
         jsonrpc: "2.0",
@@ -271,7 +271,7 @@ describe("Session lifecycle", () => {
     // Inicializar sesión
     const initRes = await request(app)
       .post("/mcp")
-      .set("Authorization", "Bearer expected-token")
+      .set("Authorization", "Bearer expected-token-para-pruebas")
       .set("Accept", "application/json, text/event-stream")
       .send({
         jsonrpc: "2.0",
@@ -284,7 +284,7 @@ describe("Session lifecycle", () => {
     // Usar la sesión existente (mismo Accept header que el SDK espera)
     const res = await request(app)
       .post("/mcp")
-      .set("Authorization", "Bearer expected-token")
+      .set("Authorization", "Bearer expected-token-para-pruebas")
       .set("Mcp-Session-Id", sessionId)
       .set("Accept", "application/json, text/event-stream")
       .send({ jsonrpc: "2.0", id: 2, method: "tools/list" });
@@ -295,7 +295,7 @@ describe("Session lifecycle", () => {
     const app = buildHttpApp({ buildServer: miniServer, cfg: cfg(), log: silent });
     const res = await request(app)
       .post("/mcp")
-      .set("Authorization", "Bearer expected-token")
+      .set("Authorization", "Bearer expected-token-para-pruebas")
       .set("Mcp-Session-Id", "no-such-session")
       .send({ jsonrpc: "2.0", id: 1, method: "tools/list" });
     expect(res.status).toBe(400);
@@ -306,7 +306,7 @@ describe("Session lifecycle", () => {
     const app = buildHttpApp({ buildServer: miniServer, cfg: cfg(), log: silent });
     const initRes = await request(app)
       .post("/mcp")
-      .set("Authorization", "Bearer expected-token")
+      .set("Authorization", "Bearer expected-token-para-pruebas")
       .set("Accept", "application/json, text/event-stream")
       .send({
         jsonrpc: "2.0",
@@ -318,7 +318,7 @@ describe("Session lifecycle", () => {
 
     const res = await request(app)
       .post("/mcp")
-      .set("Authorization", "Bearer expected-token")
+      .set("Authorization", "Bearer expected-token-para-pruebas")
       .set("mcp-session-id", sessionId)
       .set("Accept", "application/json, text/event-stream")
       .send({ jsonrpc: "2.0", id: 2, method: "tools/list" });
@@ -333,8 +333,26 @@ describe("Auth edge cases", () => {
     expect(res.status).toBe(401);
   });
 
-  it("POST /mcp sin authToken configurado (undefined) → bearer vacío → 401", async () => {
-    const app = buildHttpApp({ buildServer: miniServer, cfg: cfg({ authToken: undefined as never }), log: silent });
+  it("sin authToken configurado, construir la app FALLA (fallo cerrado, F28)", () => {
+    // Antes se construía y quedaba abierta: `compareTokens("", "")` casaba, así
+    // que cualquier petición sin cabecera pasaba. Ahora no se puede ni montar.
+    expect(() =>
+      buildHttpApp({
+        buildServer: miniServer,
+        cfg: cfg({ authToken: undefined as never }),
+        log: silent,
+      }),
+    ).toThrow(/MCP_AUTH_TOKEN/);
+  });
+
+  it("un token demasiado corto también se rechaza", () => {
+    expect(() =>
+      buildHttpApp({ buildServer: miniServer, cfg: cfg({ authToken: "corto" }), log: silent }),
+    ).toThrow(/al menos/);
+  });
+
+  it("con token válido, la app se monta", async () => {
+    const app = buildHttpApp({ buildServer: miniServer, cfg: cfg(), log: silent });
     const res = await request(app)
       .post("/mcp")
       .set("Authorization", "Bearer any-token")
@@ -361,7 +379,7 @@ describe("Error handling", () => {
     const app = buildHttpApp({ buildServer: miniServer, cfg: cfg(), log: silent });
     const res = await request(app)
       .post("/mcp")
-      .set("Authorization", "Bearer expected-token")
+      .set("Authorization", "Bearer expected-token-para-pruebas")
       .set("Content-Type", "application/json")
       .send("{invalid json}");
     // El error de parseo JSON se propaga al catch del handler → 500
@@ -372,7 +390,7 @@ describe("Error handling", () => {
     const app = buildHttpApp({ buildServer: miniServer, cfg: cfg(), log: silent });
     const res = await request(app)
       .get("/mcp")
-      .set("Authorization", "Bearer expected-token");
+      .set("Authorization", "Bearer expected-token-para-pruebas");
     // GET sin session id → no entry → 400
     expect(res.status).toBe(400);
     expect(res.body?.error?.code).toBe(-32000);
@@ -382,7 +400,7 @@ describe("Error handling", () => {
     const app = buildHttpApp({ buildServer: miniServer, cfg: cfg(), log: silent });
     const res = await request(app)
       .post("/mcp")
-      .set("Authorization", "Bearer expected-token")
+      .set("Authorization", "Bearer expected-token-para-pruebas")
       .set("Content-Type", "application/json")
       .send("not json at all");
     // Catch block returns 500 when headers not yet sent
@@ -398,7 +416,7 @@ describe("Error handling", () => {
     // Initialize
     await request(app)
       .post("/mcp")
-      .set("Authorization", "Bearer expected-token")
+      .set("Authorization", "Bearer expected-token-para-pruebas")
       .set("Accept", "application/json, text/event-stream")
       .send({
         jsonrpc: "2.0",
@@ -422,7 +440,7 @@ describe("Error handling", () => {
     const res = await request(app)
       .post("/mcp")
       .set("Origin", "https://app.example.com")
-      .set("Authorization", "Bearer expected-token")
+      .set("Authorization", "Bearer expected-token-para-pruebas")
       .send({});
     expect(res.headers["access-control-allow-origin"]).toBe("https://app.example.com");
     expect(res.headers["access-control-allow-methods"]).toContain("POST");
@@ -438,7 +456,7 @@ describe("Error handling", () => {
     const res = await request(app)
       .post("/mcp")
       .set("Origin", "https://evil.com")
-      .set("Authorization", "Bearer expected-token")
+      .set("Authorization", "Bearer expected-token-para-pruebas")
       .send({});
     expect(res.status).toBe(403);
   });
@@ -452,7 +470,7 @@ describe("Error handling", () => {
     // No origin header → skips origin check, goes to bearer
     const res = await request(app)
       .post("/mcp")
-      .set("Authorization", "Bearer expected-token")
+      .set("Authorization", "Bearer expected-token-para-pruebas")
       .send({});
     // 400 (no session), not 403
     expect(res.status).toBe(400);
@@ -462,7 +480,7 @@ describe("Error handling", () => {
   it("OPTIONS preflight with allowed origin sets all CORS headers", async () => {
     const app = buildHttpApp({
       buildServer: miniServer,
-      cfg: cfg({ allowedOrigins: ["https://app.example.com"], authToken: "secret" }),
+      cfg: cfg({ allowedOrigins: ["https://app.example.com"], authToken: "secreto-de-pruebas-largo" }),
       log: silent,
     });
     const res = await request(app)
@@ -494,7 +512,7 @@ describe("Error handling", () => {
     const res = await request(app)
       .post("/mcp")
       .set("Origin", "https://app.example.com")
-      .set("Authorization", "Bearer expected-token")
+      .set("Authorization", "Bearer expected-token-para-pruebas")
       .send({ jsonrpc: "2.0", id: 1, method: "tools/list" });
     expect(res.status).toBe(400);
     expect(res.body?.error?.message).toContain("No valid session");
@@ -505,7 +523,7 @@ describe("Error handling", () => {
     const app = buildHttpApp({ buildServer: miniServer, cfg: cfg(), log: silent });
     const res = await request(app)
       .delete("/mcp")
-      .set("Authorization", "Bearer expected-token");
+      .set("Authorization", "Bearer expected-token-para-pruebas");
     expect(res.status).toBe(400);
     expect(res.body?.error?.code).toBe(-32000);
   });
@@ -520,7 +538,7 @@ describe("Idle eviction", () => {
     // Inicializar sesión
     const initRes = await request(app)
       .post("/mcp")
-      .set("Authorization", "Bearer expected-token")
+      .set("Authorization", "Bearer expected-token-para-pruebas")
       .set("Accept", "application/json, text/event-stream")
       .send({
         jsonrpc: "2.0",
@@ -582,7 +600,7 @@ describe("Catch block error handling", () => {
     // Esto se propaga a Express como error 500
     const res = await request(app)
       .post("/mcp")
-      .set("Authorization", "Bearer expected-token")
+      .set("Authorization", "Bearer expected-token-para-pruebas")
       .set("Accept", "application/json, text/event-stream")
       .send({
         jsonrpc: "2.0",
@@ -606,7 +624,7 @@ describe("Catch block error handling", () => {
     const app = buildHttpApp({ buildServer: fragileServer, cfg: cfg(), log: silent });
     const res = await request(app)
       .post("/mcp")
-      .set("Authorization", "Bearer expected-token")
+      .set("Authorization", "Bearer expected-token-para-pruebas")
       .set("Accept", "application/json, text/event-stream")
       .send({
         jsonrpc: "2.0",
@@ -632,7 +650,7 @@ describe("Metrics endpoint", () => {
     const app = buildHttpApp({ buildServer: miniServer, cfg: cfg(), log: silent });
     const res = await request(app)
       .get("/metrics")
-      .set("Authorization", "Bearer expected-token");
+      .set("Authorization", "Bearer expected-token-para-pruebas");
     expect(res.status).toBe(200);
     expect(res.headers["content-type"]).toContain("text/plain");
     expect(res.text).toContain("# HELP mcp_requests_total");
@@ -646,7 +664,7 @@ describe("Metrics endpoint", () => {
     const app = buildHttpApp({ buildServer: miniServer, cfg: cfg(), log: silent });
     await request(app)
       .post("/mcp")
-      .set("Authorization", "Bearer expected-token")
+      .set("Authorization", "Bearer expected-token-para-pruebas")
       .set("Accept", "application/json, text/event-stream")
       .send({
         jsonrpc: "2.0", id: 1, method: "initialize",
@@ -654,7 +672,7 @@ describe("Metrics endpoint", () => {
       });
     const res = await request(app)
       .get("/metrics")
-      .set("Authorization", "Bearer expected-token");
+      .set("Authorization", "Bearer expected-token-para-pruebas");
     expect(res.text).toContain("mcp_active_sessions");
     const match = res.text.match(/mcp_active_sessions\s+(\d+)/);
     expect(match).not.toBeNull();
@@ -666,7 +684,7 @@ describe("Metrics endpoint", () => {
     await request(app).post("/mcp").send({});
     const res = await request(app)
       .get("/metrics")
-      .set("Authorization", "Bearer expected-token");
+      .set("Authorization", "Bearer expected-token-para-pruebas");
     expect(res.status).toBe(200);
     expect(res.text).toMatch(/mcp_requests_total\{.*status="401".*\}\s+\d+/);
   });
@@ -679,7 +697,7 @@ describe("Metrics endpoint", () => {
     });
     const res = await request(app)
       .get("/metrics")
-      .set("Authorization", "Bearer expected-token")
+      .set("Authorization", "Bearer expected-token-para-pruebas")
       .set("Origin", "https://evil.com");
     expect(res.status).toBe(403);
     expect(res.body.error).toBe("origin_not_allowed");

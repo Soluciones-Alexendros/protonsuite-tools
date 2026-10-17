@@ -15,8 +15,13 @@ describe("compareTokens · timing-safe bearer comparison", () => {
     expect(compareTokens("abc123", "abc")).toBe(false);
   });
 
-  it("returns true for empty strings", () => {
-    expect(compareTokens("", "")).toBe(true);
+  it("un token esperado vacío NUNCA casa (fallo cerrado, F28)", () => {
+    // Antes devolvía `true`: los dos digestos del HMAC salían iguales cuando la
+    // clave y el mensaje eran la cadena vacía. Eso dejaba abierto un servidor
+    // HTTP sin MCP_AUTH_TOKEN a cualquiera que no mandara cabecera.
+    expect(compareTokens("", "")).toBe(false);
+    expect(compareTokens("lo-que-sea", "")).toBe(false);
+    expect(compareTokens("", "esperado-suficientemente-largo")).toBe(false);
   });
 
   it("returns false when only one is empty", () => {
