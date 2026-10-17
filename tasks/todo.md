@@ -75,8 +75,24 @@ la ref local `main`.
 
 ---
 
-## P02 — Autorización, secretos y auditoría (PR-02) · `proposed`
-- P02-O01 policy engine + aprobación vinculante (F03, F43) — **P0**
+## P02 — Autorización, secretos y auditoría (PR-02) · `blocked`
+
+Bloqueado en la decisión del OWNER sobre
+[ADR-0009](../docs/adr/0009-authorization-y-aprobacion-vinculante.md) y la
+especificación [`P02-O01`](../specs/production-close/specs/P02-O01-policy-engine.md).
+
+Evidencia recogida para la decisión:
+
+- **26 de 50** herramientas no son de lectura (15 de escritura, 9 destructivas) y
+  ninguna exige autorización. El único freno es `AGENT_DRY_RUN`.
+- Las `annotations` están mal y no pueden ser la base del control:
+  `proton_calendar_create_event` declara `readOnly: true` y crea eventos;
+  `proton_drive_copy`, igual, y copia ficheros; `proton_pass_get` no declara clase.
+- No hay identidad de actor: hay un único bearer token compartido (`src/auth.ts`)
+  y un `sessionId` por sesión (`src/http.ts`).
+
+- P02-O01 motor de políticas + aprobación vinculante (F03, F43) — **P0**,
+  especificado, sin implementar
 - P02-O02 auditoría durable + redacción (F42)
 - P02-O03 secretos fuera del modelo (F06) — **P1**
 
