@@ -176,3 +176,103 @@ describe('registerBridgeTools — 6 MCP tools', () => {
     expect(client.listAccounts).toHaveBeenCalled()
   })
 })
+
+// ===========================================================================
+// T-SEC-01 — El límite MCP no reenvía secretos (hallazgo F04)
+// ===========================================================================
+
+const DECOY = 'DECOY-bridge-password-abc123'
+
+/**
+ * Cliente hostil: devuelve señuelos en todos los campos, incluido uno que NO
+ * pertenece al contrato público. El servidor debe filtrar por lista positiva
+ * y no reenviar nada que no esté declarado.
+ */
+function decoyBridge() {
+  const status = {
+    user: 'u@proton.me',
+    version: '3.15',
+    imapPort: 1143,
+    smtpPort: 1025,
+    processRunning: true,
+    imapListening: true,
+    smtpListening: true,
+    authOk: true,
+    bridgePassword: DECOY,
+    password: DECOY,
+    totp: DECOY,
+  }
+  return {
+    health: () => Promise.resolve({ ...status, ok: true }),
+    status: () => Promise.resolve(status),
+    info: () =>
+      Promise.resolve({
+        user: 'u@proton.me',
+        version: '3.15',
+        imapPort: 1143,
+        smtpPort: 1025,
+        bridgePassword: DECOY,
+      }),
+  } as unknown as BridgeClient
+}
+
+describe('T-SEC-01 — ningún señuelo cruza el límite MCP', () => {
+  it('proton_bridge_info no propaga la contraseña', async () => {
+    registerBridgeTools(mockRegister, decoyBridge(), silentLog)
+    const tool = capturedTools.get('proton_bridge_info')!
+
+    const result = (await tool.handler({})) as {
+      content: { text: string }[]
+      structuredContent: Record<string, unknown>
+    }
+
+    expect(JSON.stringify(result)).not.toContain(DECOY)
+    expect(result.content[0].text).not.toContain(DECOY)
+    expect(Object.keys(result.structuredContent)).not.toContain('bridgePassword')
+    expect(Object.keys(result.structuredContent).sort()).toEqual([
+      'imapPort',
+      'smtpPort',
+      'user',
+      'version',
+    ])
+  })
+
+  it('proton_bridge_status (json) no propaga campos fuera de la lista positiva', async () => {
+    registerBridgeTools(mockRegister, decoyBridge(), silentLog)
+    const tool = capturedTools.get('proton_bridge_status')!
+
+    const result = (await tool.handler({ response_format: 'json' })) as {
+      content: { text: string }[]
+      structuredContent: Record<string, unknown>
+    }
+
+    expect(JSON.stringify(result)).not.toContain(DECOY)
+    expect(Object.keys(result.structuredContent)).not.toContain('bridgePassword')
+    expect(Object.keys(result.structuredContent)).not.toContain('password')
+    expect(Object.keys(result.structuredContent)).not.toContain('totp')
+  })
+
+  it('proton_bridge_status (markdown) no propaga la contraseña', async () => {
+    registerBridgeTools(mockRegister, decoyBridge(), silentLog)
+    const tool = capturedTools.get('proton_bridge_status')!
+
+    const result = (await tool.handler({ response_format: 'markdown' })) as {
+      content: { text: string }[]
+    }
+
+    expect(result.content[0].text).not.toContain(DECOY)
+  })
+
+  it('proton_bridge_health (json) no propaga la contraseña', async () => {
+    registerBridgeTools(mockRegister, decoyBridge(), silentLog)
+    const tool = capturedTools.get('proton_bridge_health')!
+
+    const result = (await tool.handler({ response_format: 'json' })) as {
+      content: { text: string }[]
+      structuredContent: Record<string, unknown>
+    }
+
+    expect(JSON.stringify(result)).not.toContain(DECOY)
+    expect(Object.keys(result.structuredContent)).not.toContain('bridgePassword')
+  })
+})

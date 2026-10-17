@@ -1,8 +1,7 @@
-import { mkdirSync, renameSync } from 'node:fs'
-import { dirname, resolve as resolvePath } from 'node:path'
 import { AlertSystem } from '../alerts/index.js'
 import { loadConfig, type Config } from '../config.js'
 import { createLogger } from '../config.js'
+import type { OrganizeApplyResult, OrganizePlan } from '../drive-audit.js'
 import type { AgentGoal } from './goals.js'
 import { parseGoal, buildGoalContext, describeGoal } from './goals.js'
 import { buildOrganizationPlan, applyOrganizationPlan } from './organizer.js'
@@ -150,18 +149,18 @@ const goalHandlers: Record<string, GoalHandler> = {
         items: report.rotationPlan,
       })
     } else {
-      for (const item of report.rotationPlan) {
-        await passClient.generate(item.path)
-        log.info('pass-audit regenerated', {
-          path: item.path,
-          reason: item.reason,
-        })
-      }
+      // Una auditoría NUNCA escribe: rotar la contraseña ALMACENADA no cambia
+      // la del servicio, así que regenerarla aquí invalida la credencial sin
+      // rotarla (hallazgo F01). El plan se informa y se aplica fuera del
+      // agente, entrada por entrada y con decisión explícita.
+      log.warn('pass-audit is read-only; rotationPlan NOT applied', {
+        items: report.rotationPlan.length,
+      })
     }
     alerts.audit('pass-audit', 'agent/executor', {
       ...report,
       dryRun: ctx.dryRun,
-      applied: !ctx.dryRun ? report.rotationPlan.length : 0,
+      applied: 0,
     })
   },
 
@@ -191,26 +190,29 @@ const goalHandlers: Record<string, GoalHandler> = {
     if (ctx.dryRun) {
       log.info('drive-organize plan (dry-run)', {
         suggestions: plan.suggestions.length,
+        movable: plan.movable,
+        blocked: plan.blocked,
       })
       alerts.info(
         'drive-organize',
         'Plan de organización Drive en dry-run',
         'agent/executor',
-        { suggestions: plan.suggestions.length },
+        { suggestions: plan.suggestions.length, blocked: plan.blocked },
       )
     } else {
-      let moved = 0
-      for (const s of plan.suggestions) {
-        if (s.action === 'move') {
-          const src = resolvePath(deps.stagingDir, s.from)
-          const dst = resolvePath(deps.stagingDir, s.to)
-          mkdirSync(dirname(dst), { recursive: true })
-          renameSync(src, dst)
-          moved++
-        }
-      }
-      log.info('drive-organize applied', { moved })
-      alerts.audit('drive-organize-applied', 'agent/executor', { moved })
+      // Mismo motor que `proton_drive_organize`: revalida precondiciones y
+      // nunca sobrescribe (hallazgo F02).
+      const applied = deps.applyOrganizePlan(deps.stagingDir, plan, log)
+      log.info('drive-organize applied', {
+        moved: applied.moved,
+        skipped: applied.skipped,
+        failed: applied.failed,
+      })
+      alerts.audit('drive-organize-applied', 'agent/executor', {
+        moved: applied.moved,
+        skipped: applied.skipped,
+        failed: applied.failed,
+      })
     }
   },
 
@@ -292,8 +294,13 @@ interface DriveDepsResult {
     scanInventory: (dir: string) => Promise<{ totalFiles: number; totalBytes: number }>
     findDuplicates: (dir: string) => Promise<{ hash: string; size: number; files: { path: string; name: string }[] }[]>
     formatReport: (dir: string) => Promise<{ totalExtensions: number; obsoleteFiles: { name: string; path: string; ext: string; size: number }[] }>
-    buildOrganizePlan: (dir: string) => Promise<{ suggestions: { action: string; from: string; to: string; reason: string }[] }>
+    buildOrganizePlan: (dir: string) => Promise<OrganizePlan>
   }
+  applyOrganizePlan: (
+    stagingDir: string,
+    plan: OrganizePlan,
+    log: ReturnType<typeof createLogger>,
+  ) => OrganizeApplyResult
 }
 
 async function loadDriveDeps(cfg: Config, log: ReturnType<typeof createLogger>): Promise<DriveDepsResult | null> {
@@ -302,7 +309,7 @@ async function loadDriveDeps(cfg: Config, log: ReturnType<typeof createLogger>):
     process.exit(2)
   }
   const { DriveClient } = await import('../drive.js')
-  const { DriveAuditor } = await import('../drive-audit.js')
+  const { DriveAuditor, applyOrganizePlan } = await import('../drive-audit.js')
   const driveCfg = cfg.products.drive
   const client = new DriveClient(driveCfg, log)
   const auditorInstance = new DriveAuditor(driveCfg.obsoleteExtensions, log)
@@ -310,6 +317,7 @@ async function loadDriveDeps(cfg: Config, log: ReturnType<typeof createLogger>):
     stagingDir: client.stagingDir,
     driveClient: client,
     auditor: auditorInstance,
+    applyOrganizePlan,
   } as unknown as DriveDepsResult
 }
 

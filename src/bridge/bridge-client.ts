@@ -10,11 +10,17 @@ export interface BridgeConfig {
   host: string
 }
 
+/**
+ * DTO PÚBLICO de Bridge.
+ *
+ * NO añadir credenciales aquí: `bridge info` imprime la contraseña del Bridge
+ * en su salida, pero este objeto llega a `structuredContent` y al modelo.
+ * Extraerla fue el hallazgo F04 (fuga del secreto al estado JSON).
+ */
 export interface BridgeInfo {
   [key: string]: unknown
   user?: string
   version?: string
-  bridgePassword?: string
   smtpPort?: number
   imapPort?: number
 }
@@ -91,13 +97,14 @@ export class BridgeClient {
       const raw = await this.cliCommand('info')
       const user = /User:\s*(\S+@\S+)/.exec(raw)
       const version = /Bridge version:\s*(\S+)/.exec(raw)
-      const password = /Password:\s*(\S+)/.exec(raw)
       const imapPort = /IMAP port:\s*(\d+)/.exec(raw)
       const smtpPort = /SMTP port:\s*(\d+)/.exec(raw)
+      // Deliberadamente NO se extrae `Password:` de la salida: es un secreto y
+      // este DTO se serializa hacia el modelo (F04). Quien necesite la
+      // contraseña debe obtenerla de su origen configurado, no de aquí.
       return {
         ...(user ? { user: user[1] } : {}),
         ...(version ? { version: version[1] } : {}),
-        ...(password ? { bridgePassword: password[1] } : {}),
         ...(imapPort ? { imapPort: Number(imapPort[1]) } : {}),
         ...(smtpPort ? { smtpPort: Number(smtpPort[1]) } : {}),
       }

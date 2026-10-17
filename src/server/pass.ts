@@ -112,16 +112,26 @@ export function registerPassTools(
     {
       title: 'Generate a secure password',
       description:
-        'Generates a strong random password and saves it to the Proton Pass store.',
+        'Generates a strong random password and saves it to the Proton Pass store. Refuses to overwrite an existing entry unless overwrite=true is set explicitly.',
       inputSchema: {
         path: z.string(),
         length: z.number().int().min(12).max(128).default(24),
+        overwrite: z
+          .boolean()
+          .default(false)
+          .describe(
+            'Explicitly replace an existing entry. Leaves a backup copy of the previous ciphertext. Default: false (no-clobber).',
+          ),
       },
       annotations: { destructiveHint: true, openWorldHint: true },
     },
-    async ({ path, length }) => {
+    async ({ path, length, overwrite }) => {
       try {
-        const result = await passClient.generate(path, length)
+        const result = await passClient.generate(
+          path,
+          length,
+          overwrite ? { overwrite: true } : {},
+        )
         return {
           content: [
             {
@@ -161,21 +171,39 @@ export function registerPassTools(
     {
       title: 'Insert a secret into Proton Pass store',
       description:
-        'Stores a new entry. Never logs nor returns the secret value.',
+        'Stores a new entry. Refuses to overwrite an existing entry unless overwrite=true is set explicitly. Never logs nor returns the secret value.',
       inputSchema: {
         path: z.string().describe('Entry path, e.g. proton/bridge/api-key'),
         secret: z.string().describe('The secret value to store.'),
+        overwrite: z
+          .boolean()
+          .default(false)
+          .describe(
+            'Explicitly replace an existing entry. Leaves a backup copy of the previous ciphertext. Default: false (no-clobber).',
+          ),
       },
       annotations: {
         readOnlyHint: false,
-        destructiveHint: false,
-        idempotentHint: true,
+        destructiveHint: true,
+        idempotentHint: false,
         openWorldHint: false,
       },
     },
-    async ({ path, secret }) => {
-      await passClient.insert(path, secret)
-      return { content: [{ type: 'text', text: `Inserted entry: ${path}` }] }
+    async ({ path, secret, overwrite }) => {
+      try {
+        const result = await passClient.insert(
+          path,
+          secret,
+          overwrite ? { overwrite: true } : {},
+        )
+        const suffix = result.backupPath ? ` (backup: ${result.backupPath})` : ''
+        return { content: [{ type: 'text', text: `Inserted entry: ${path}${suffix}` }] }
+      } catch (err) {
+        return {
+          isError: true,
+          content: [{ type: 'text', text: String(err) }],
+        }
+      }
     },
   )
 

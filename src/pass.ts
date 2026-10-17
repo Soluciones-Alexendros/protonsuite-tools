@@ -17,7 +17,7 @@
  */
 import { execFile } from 'node:child_process'
 import { randomBytes, createHash } from 'node:crypto'
-import { readdir, stat } from 'node:fs/promises'
+import { readdir, stat, copyFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { join as joinPath, resolve as resolvePath } from 'node:path'
 
@@ -169,15 +169,55 @@ export class PassClient {
   }
 
   /**
+   * ¿Existe ya la entrada? Consulta el ciphertext en disco; NUNCA descifra.
+   */
+  async exists(path: string): Promise<boolean> {
+    this.validatePath(path)
+    try {
+      await stat(joinPath(this.storeDir, `${path}.gpg`))
+      return true
+    } catch {
+      return false
+    }
+  }
+
+  /**
+   * Copia de seguridad del ciphertext antes de sobrescribir una entrada.
+   * Copia bytes cifrados: no descifra y no expone el valor.
+   */
+  private async backupBeforeOverwrite(path: string): Promise<string> {
+    const src = joinPath(this.storeDir, `${path}.gpg`)
+    const dst = `${src}.bak.${Date.now()}`
+    await copyFile(src, dst)
+    this.log.warn('pass backup before overwrite', { path })
+    return dst
+  }
+
+  /**
    * Genera una contraseña segura y la guarda en el store.
    * Devuelve metadata (path, length) sin el valor generado.
+   *
+   * NO-CLOBBER: si la entrada ya existe, lanza `PassError('EXISTS')` salvo que
+   * se pase `{ overwrite: true }`. Sobrescribir exige decisión explícita y
+   * deja copia de seguridad del ciphertext anterior.
    */
   async generate(
     path: string,
     length = 24,
-  ): Promise<{ path: string; length: number }> {
+    opts: { overwrite?: boolean } = {},
+  ): Promise<{ path: string; length: number; backupPath?: string }> {
     this.validatePath(path)
-    this.log.info('pass generate', { path, length })
+    const alreadyExists = await this.exists(path)
+    if (alreadyExists && opts.overwrite !== true) {
+      throw new PassError(
+        `Entry already exists: ${path}. Overwrite requires explicit opt-in.`,
+        'EXISTS',
+      )
+    }
+    const backupPath = alreadyExists
+      ? await this.backupBeforeOverwrite(path)
+      : undefined
+    this.log.info('pass generate', { path, length, overwrite: alreadyExists })
     const password = randomBytes(Math.ceil(length * 0.75))
       .toString('base64')
       .slice(0, length)
@@ -185,7 +225,9 @@ export class PassClient {
       env: { ...process.env, PASSWORD_STORE_DIR: this.storeDir },
       input: password,
     })
-    return { path, length }
+    return backupPath === undefined
+      ? { path, length }
+      : { path, length, backupPath }
   }
 
   /**
@@ -298,7 +340,7 @@ export class PassClient {
     const recommendations: string[] = []
     if (weakPasswords.length > 0) {
       recommendations.push(
-        `${weakPasswords.length} contraseñas débiles detectadas (<12 caracteres o poca variedad). Regenerar con 'proton_pass_generate'.`,
+        `${weakPasswords.length} contraseñas débiles detectadas (<12 caracteres o poca variedad). Rotarlas en el servicio de origen: 'proton_pass_generate' no las sobrescribe.`,
       )
     }
     if (duplicates.length > 0) {
@@ -313,7 +355,7 @@ export class PassClient {
     }
     if (rotationPlan.length > 0) {
       recommendations.push(
-        `Plan de rotación: ${rotationPlan.length} entradas. Dry-run por defecto; AGENT_DRY_RUN=false aplica regeneración.`,
+        `Plan de rotación: ${rotationPlan.length} entradas. La auditoría NUNCA escribe. Cambiar la contraseña almacenada no cambia la del servicio: rota cada credencial en su origen.`,
       )
     }
 
@@ -331,18 +373,34 @@ export class PassClient {
   /**
    * Inserta una nueva entrada en el store.
    * Loguea solo el path, NUNCA el valor.
+   *
+   * NO-CLOBBER: igual que `generate`, sobrescribir exige `{ overwrite: true }`
+   * y deja copia de seguridad del ciphertext anterior.
    */
   async insert(
     path: string,
     secret: string,
-  ): Promise<{ ok: true; path: string }> {
+    opts: { overwrite?: boolean } = {},
+  ): Promise<{ ok: true; path: string; backupPath?: string }> {
     this.validatePath(path)
-    this.log.info('pass insert', { path })
+    const alreadyExists = await this.exists(path)
+    if (alreadyExists && opts.overwrite !== true) {
+      throw new PassError(
+        `Entry already exists: ${path}. Overwrite requires explicit opt-in.`,
+        'EXISTS',
+      )
+    }
+    const backupPath = alreadyExists
+      ? await this.backupBeforeOverwrite(path)
+      : undefined
+    this.log.info('pass insert', { path, overwrite: alreadyExists })
     await this.exec(['insert', '--multiline', '--force', path], {
       env: { ...process.env, PASSWORD_STORE_DIR: this.storeDir },
       input: secret,
     })
-    return { ok: true, path }
+    return backupPath === undefined
+      ? { ok: true, path }
+      : { ok: true, path, backupPath }
   }
 
   /**
@@ -409,7 +467,7 @@ export class PassClient {
 export class PassError extends Error {
   constructor(
     message: string,
-    public readonly code: 'NOT_FOUND' | 'READ_ERROR' | 'INVALID_PATH',
+    public readonly code: 'NOT_FOUND' | 'READ_ERROR' | 'INVALID_PATH' | 'EXISTS',
   ) {
     super(message)
     this.name = 'PassError'

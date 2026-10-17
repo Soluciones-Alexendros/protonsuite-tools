@@ -173,7 +173,7 @@ describe('registerPassTools', () => {
       const parsed = JSON.parse(result.content[0].text)
       expect(parsed.generated).toBe(true)
       expect(parsed.length).toBe(24)
-      expect(hoisted.mockGenerate).toHaveBeenCalledWith('new/pass', 24)
+      expect(hoisted.mockGenerate).toHaveBeenCalledWith('new/pass', 24, {})
     })
 
     it('genera con length personalizado', async () => {
@@ -216,9 +216,38 @@ describe('registerPassTools', () => {
 
       const result = await invoke('proton_pass_insert', { path: 'new/entry', secret: 's3cr3t' })
       expect(result.content[0].text).toContain('Inserted entry')
-      expect(hoisted.mockInsert).toHaveBeenCalledWith('new/entry', 's3cr3t')
+      expect(hoisted.mockInsert).toHaveBeenCalledWith('new/entry', 's3cr3t', {})
       // El secreto no debe aparecer en el log ni en la respuesta
       expect(result.content[0].text).not.toContain('s3cr3t')
+    })
+
+    it('sin opt-in devuelve isError cuando la entrada ya existe (F01)', async () => {
+      hoisted.mockInsert.mockRejectedValue(new Error('Entry already exists: new/entry'))
+      const { server, invoke } = captureHandler()
+      registerPassTools(server, { cfg: defaultCfg, log: hoisted.silentLog })
+
+      const result = await invoke('proton_pass_insert', { path: 'new/entry', secret: 's3cr3t' })
+      expect(result.isError).toBe(true)
+      expect(result.content[0].text).toContain('already exists')
+      expect(result.content[0].text).not.toContain('s3cr3t')
+    })
+
+    it('con overwrite:true informa de la copia de seguridad', async () => {
+      hoisted.mockInsert.mockResolvedValue({
+        ok: true,
+        path: 'new/entry',
+        backupPath: '/store/new/entry.gpg.bak.1',
+      })
+      const { server, invoke } = captureHandler()
+      registerPassTools(server, { cfg: defaultCfg, log: hoisted.silentLog })
+
+      const result = await invoke('proton_pass_insert', {
+        path: 'new/entry',
+        secret: 's3cr3t',
+        overwrite: true,
+      })
+      expect(hoisted.mockInsert).toHaveBeenCalledWith('new/entry', 's3cr3t', { overwrite: true })
+      expect(result.content[0].text).toContain('backup: /store/new/entry.gpg.bak.1')
     })
   })
 

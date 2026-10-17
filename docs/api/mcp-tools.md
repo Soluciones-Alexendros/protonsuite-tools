@@ -739,7 +739,7 @@ hints) so MCP clients can reason about effects before invoking.
 **Title:** Generate a secure password
 **Hints:** destructive: true · openWorld: true
 
-**Description:** Generates a strong random password and saves it to the Proton Pass store.
+**Description:** Generates a strong random password and saves it to the Proton Pass store. Refuses to overwrite an existing entry unless overwrite=true is set explicitly.
 
 **Input parameters:**
 
@@ -747,6 +747,7 @@ hints) so MCP clients can reason about effects before invoking.
 |---|---|---|---|---|
 | `path` | string | required |  |  |
 | `length` | integer | required | `24` |  |
+| `overwrite` | boolean | required | `false` | Explicitly replace an existing entry. Leaves a backup copy of the previous ciphertext. Default: false (no-clobber). |
 
 
 
@@ -766,9 +767,9 @@ _This tool takes no arguments._
 ### `proton_pass_insert` {#protonpassinsert}
 
 **Title:** Insert a secret into Proton Pass store
-**Hints:** readOnly: false · destructive: false · idempotent: true · openWorld: false
+**Hints:** readOnly: false · destructive: true · idempotent: false · openWorld: false
 
-**Description:** Stores a new entry. Never logs nor returns the secret value.
+**Description:** Stores a new entry. Refuses to overwrite an existing entry unless overwrite=true is set explicitly. Never logs nor returns the secret value.
 
 **Input parameters:**
 
@@ -776,6 +777,7 @@ _This tool takes no arguments._
 |---|---|---|---|---|
 | `path` | string | required |  | Entry path, e.g. proton/bridge/api-key |
 | `secret` | string | required |  | The secret value to store. |
+| `overwrite` | boolean | required | `false` | Explicitly replace an existing entry. Leaves a backup copy of the previous ciphertext. Default: false (no-clobber). |
 
 
 
@@ -991,9 +993,9 @@ _This tool takes no arguments._
 ### `proton_drive_organize` {#protondriveorganize}
 
 **Title:** Organize files in Proton Drive
-**Hints:** readOnly: false · destructive: false · idempotent: false · openWorld: true
+**Hints:** readOnly: false · destructive: true · idempotent: false · openWorld: true
 
-**Description:** Analyzes the staging directory and moves files into a structured folder layout (by type). Dry-run by default.
+**Description:** Analyzes the staging directory and moves files into a structured folder layout (by type). Dry-run by default. Never overwrites: colliding destinations are rejected unless strategy="rename".
 
 **Input parameters:**
 
@@ -1001,6 +1003,7 @@ _This tool takes no arguments._
 |---|---|---|---|---|
 | `dry_run` | boolean | required | `true` | If true, only shows the plan without moving files. |
 | `staging_dir` | string | optional |  |  |
+| `strategy` | string | required | `"reject"` | What to do when the destination is taken: reject (default, no-clobber) or rename (disambiguate). |
 
 
 

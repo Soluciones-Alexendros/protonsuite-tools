@@ -8,6 +8,40 @@ type Logger = ReturnType<typeof createLogger>
 
 type RegisterFn = typeof McpServer.prototype.registerTool
 
+/**
+ * Campos PÚBLICOS de Bridge que pueden salir hacia el modelo.
+ *
+ * El límite MCP no confía en el DTO del cliente: construye el payload por
+ * lista positiva, de modo que un secreto que aparezca en el objeto de origen
+ * (por ejemplo la contraseña que imprime `bridge info`) no llegue nunca a
+ * `structuredContent` ni al texto JSON (hallazgo F04).
+ */
+function publicFields(
+  source: Record<string, unknown>,
+  keys: readonly string[],
+): Record<string, unknown> {
+  const out: Record<string, unknown> = {}
+  for (const key of keys) {
+    if (source[key] !== undefined) {
+      out[key] = source[key]
+    }
+  }
+  return out
+}
+
+const HEALTH_FIELDS = [
+  'ok',
+  'processRunning',
+  'imapListening',
+  'smtpListening',
+  'authOk',
+  'error',
+] as const
+
+const STATUS_FIELDS = [...HEALTH_FIELDS, 'user', 'version', 'imapPort', 'smtpPort'] as const
+
+const INFO_FIELDS = ['user', 'version', 'imapPort', 'smtpPort'] as const
+
 export function registerBridgeTools(
   register: RegisterFn,
   bridge: BridgeClient,
@@ -29,10 +63,11 @@ export function registerBridgeTools(
     },
     async ({ response_format }) => {
       const health = await bridge.health()
+      const pub = publicFields(health, HEALTH_FIELDS)
       if (response_format === 'json') {
         return {
-          content: [{ type: 'text', text: JSON.stringify(health, null, 2) }],
-          structuredContent: asStructured(health),
+          content: [{ type: 'text', text: JSON.stringify(pub, null, 2) }],
+          structuredContent: pub,
         }
       }
       const lines = [
@@ -65,10 +100,11 @@ export function registerBridgeTools(
     },
     async ({ response_format }) => {
       const st = await bridge.status()
+      const pub = publicFields(st, STATUS_FIELDS)
       if (response_format === 'json') {
         return {
-          content: [{ type: 'text', text: JSON.stringify(st, null, 2) }],
-          structuredContent: asStructured(st),
+          content: [{ type: 'text', text: JSON.stringify(pub, null, 2) }],
+          structuredContent: pub,
         }
       }
       const lines = [
@@ -99,6 +135,7 @@ export function registerBridgeTools(
     },
     async () => {
       const info = await bridge.info()
+      const pub = publicFields(info, INFO_FIELDS)
       return {
         content: [
           {
@@ -113,7 +150,7 @@ export function registerBridgeTools(
             ].join('\n'),
           },
         ],
-        structuredContent: asStructured(info),
+        structuredContent: pub,
       }
     },
   )

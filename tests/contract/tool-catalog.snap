@@ -643,6 +643,11 @@
           "minimum": 12,
           "type": "integer",
         },
+        "overwrite": {
+          "default": false,
+          "description": "Explicitly replace an existing entry. Leaves a backup copy of the previous ciphertext. Default: false (no-clobber).",
+          "type": "boolean",
+        },
         "path": {
           "type": "string",
         },
@@ -668,14 +673,19 @@
   },
   {
     "annotations": {
-      "destructiveHint": false,
-      "idempotentHint": true,
+      "destructiveHint": true,
+      "idempotentHint": false,
       "openWorldHint": false,
       "readOnlyHint": false,
     },
     "inputSchema": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "properties": {
+        "overwrite": {
+          "default": false,
+          "description": "Explicitly replace an existing entry. Leaves a backup copy of the previous ciphertext. Default: false (no-clobber).",
+          "type": "boolean",
+        },
         "path": {
           "description": "Entry path, e.g. proton/bridge/api-key",
           "type": "string",
@@ -819,7 +829,7 @@
   },
   {
     "annotations": {
-      "destructiveHint": false,
+      "destructiveHint": true,
       "idempotentHint": false,
       "openWorldHint": true,
       "readOnlyHint": false,
@@ -833,6 +843,15 @@
           "type": "boolean",
         },
         "staging_dir": {
+          "type": "string",
+        },
+        "strategy": {
+          "default": "reject",
+          "description": "What to do when the destination is taken: reject (default, no-clobber) or rename (disambiguate).",
+          "enum": [
+            "reject",
+            "rename",
+          ],
           "type": "string",
         },
       },

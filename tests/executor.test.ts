@@ -69,7 +69,13 @@ const { defaultConfig, mockLogFns, mockAlertFns, setupReportMock, failReportMock
   }
 })
 
-const { mockPassClientFns, mockDriveClientFns, mockDriveAuditorFns, mockBinaries } = vi.hoisted(() => ({
+const { mockPassClientFns, mockDriveClientFns, mockDriveAuditorFns, mockApplyOrganizePlan, mockBinaries } = vi.hoisted(() => ({
+  mockApplyOrganizePlan: vi.fn().mockReturnValue({
+    moved: 0,
+    skipped: 0,
+    failed: 0,
+    results: [],
+  }),
   mockPassClientFns: {
     audit: vi.fn().mockResolvedValue({
       storeOk: true, totalEntries: 5,
@@ -90,7 +96,12 @@ const { mockPassClientFns, mockDriveClientFns, mockDriveAuditorFns, mockBinaries
     scanInventory: vi.fn().mockReturnValue({ totalFiles: 10, totalBytes: 1024, byExt: {}, byDir: {}, files: [] }),
     findDuplicates: vi.fn().mockReturnValue([]),
     formatReport: vi.fn().mockReturnValue({ totalExtensions: 3, extensions: ['.md', '.txt', '.jpg'], obsoleteExtensions: [], obsoleteFiles: [], noExtension: 0 }),
-    buildOrganizePlan: vi.fn().mockReturnValue({ suggestions: [] }),
+    buildOrganizePlan: vi.fn().mockReturnValue({
+      strategy: 'reject',
+      suggestions: [],
+      movable: 0,
+      blocked: 0,
+    }),
   },
   mockBinaries: [
     { name: 'protonmail-bridge-core', installed: true, version: '3.24.0', authenticated: true },
@@ -136,6 +147,7 @@ vi.mock('../src/drive.js', () => ({
 
 vi.mock('../src/drive-audit.js', () => ({
   DriveAuditor: vi.fn().mockImplementation(() => mockDriveAuditorFns),
+  applyOrganizePlan: (...args: unknown[]) => mockApplyOrganizePlan(...args),
 }))
 
 vi.mock('node:fs', async (importOriginal) => {
@@ -282,13 +294,22 @@ describe('runAgent · pass-audit', () => {
     expect(mockPassClientFns.generate).not.toHaveBeenCalled()
   })
 
-  it('sin dry-run regenera entradas del rotationPlan', async () => {
+  it('sin dry-run la auditoría sigue siendo de solo lectura (F01)', async () => {
     vi.mocked(loadConfig).mockReturnValue({
       ...withPassEnabled(),
       agent: { ...defaultConfig.agent, dryRun: false },
     })
     await runAgent('pass-audit')
-    expect(mockPassClientFns.generate).toHaveBeenCalledWith('servicios/old')
+    expect(mockPassClientFns.generate).not.toHaveBeenCalled()
+    expect(mockLogFns.warn).toHaveBeenCalledWith(
+      'pass-audit is read-only; rotationPlan NOT applied',
+      expect.objectContaining({ items: 1 }),
+    )
+    expect(mockAlertFns.audit).toHaveBeenCalledWith(
+      'pass-audit',
+      'agent/executor',
+      expect.objectContaining({ applied: 0, dryRun: false }),
+    )
   })
 
   it('exit(2) cuando Pass no habilitado', async () => {
@@ -318,19 +339,58 @@ describe('runAgent · drive goals', () => {
     expect(mockLogFns.info).toHaveBeenCalledWith('drive-organize plan (dry-run)', expect.objectContaining({ suggestions: 0 }))
   })
 
-  it('drive-organize sin dry-run aplica moves', async () => {
-    const { mkdirSync, renameSync } = await import('node:fs')
+  it('drive-organize sin dry-run aplica con el motor compartido (F02)', async () => {
     mockDriveAuditorFns.buildOrganizePlan.mockReturnValue({
-      suggestions: [{ action: 'move', from: 'a.doc', to: 'docs/a.doc' }],
+      strategy: 'reject',
+      suggestions: [{ action: 'move', from: 'a.doc', to: 'docs/a.doc', reason: 'r' }],
+      movable: 1,
+      blocked: 0,
+    })
+    mockApplyOrganizePlan.mockReturnValue({
+      moved: 1,
+      skipped: 0,
+      failed: 0,
+      results: [{ from: 'a.doc', to: 'docs/a.doc', status: 'moved' }],
     })
     vi.mocked(loadConfig).mockReturnValue({
       ...withDriveEnabled(),
       agent: { ...defaultConfig.agent, dryRun: false },
     })
     await runAgent('drive-organize')
-    expect(mkdirSync).toHaveBeenCalled()
-    expect(renameSync).toHaveBeenCalled()
-    expect(mockLogFns.info).toHaveBeenCalledWith('drive-organize applied', { moved: 1 })
+    expect(mockApplyOrganizePlan).toHaveBeenCalledWith(
+      '/tmp/staging',
+      expect.objectContaining({ movable: 1 }),
+      expect.anything(),
+    )
+    expect(mockLogFns.info).toHaveBeenCalledWith('drive-organize applied', {
+      moved: 1,
+      skipped: 0,
+      failed: 0,
+    })
+  })
+
+  it('drive-organize informa de fallos parciales sin inventar éxito (F02)', async () => {
+    mockApplyOrganizePlan.mockReturnValue({
+      moved: 1,
+      skipped: 0,
+      failed: 2,
+      results: [],
+    })
+    vi.mocked(loadConfig).mockReturnValue({
+      ...withDriveEnabled(),
+      agent: { ...defaultConfig.agent, dryRun: false },
+    })
+    await runAgent('drive-organize')
+    expect(mockLogFns.info).toHaveBeenCalledWith('drive-organize applied', {
+      moved: 1,
+      skipped: 0,
+      failed: 2,
+    })
+    expect(mockAlertFns.audit).toHaveBeenCalledWith(
+      'drive-organize-applied',
+      'agent/executor',
+      { moved: 1, skipped: 0, failed: 2 },
+    )
   })
 
   it('drive-list lista archivos remotos', async () => {
