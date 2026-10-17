@@ -119,14 +119,12 @@ export class DriveAuditor {
     if (existsSync(stagingDir)) {
       await walkDir(
         stagingDir,
-        (entry, full, size) => {
+        async (entry, full, size) => {
           if (size > 0) {
-            const hash = hashFile(full)
-            let dup = hashMap.get(hash)
-            if (!dup) {
-              dup = { hash, size, files: [] }
-              hashMap.set(hash, dup)
-            }
+            // En streaming: antes leía el fichero entero en memoria.
+            const hash = await hashFile(full)
+            const dup = hashMap.get(hash) ?? { hash, size, files: [] }
+            hashMap.set(hash, dup)
             dup.files.push({ path: relative(stagingDir, full), name: entry })
           }
         },

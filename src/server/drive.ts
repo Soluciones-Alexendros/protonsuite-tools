@@ -5,6 +5,7 @@ import type { createLogger, Config } from '../config.js'
 import { applyOrganizePlan, DriveAuditor } from '../drive-audit.js'
 import { withDrivePathLock } from '../drive-mutex.js'
 import type { DriveClient } from '../drive.js'
+import { WorkspacePolicy, WorkspaceViolation } from '../workspace.js'
 import { asStructured } from './structured-content.js'
 
 type Logger = ReturnType<typeof createLogger>
@@ -85,7 +86,11 @@ function registerDriveAuditTool(
       },
     },
     async ({ response_format, staging_dir }) => {
-      const staging = staging_dir ? resolve(staging_dir) : driveClient.stagingDir
+      const stagingResuelto = resolveStaging(driveClient.stagingDir, staging_dir)
+      if (!stagingResuelto.ok) {
+        return { isError: true, content: [{ type: 'text' as const, text: stagingResuelto.error }] }
+      }
+      const staging = stagingResuelto.path
       try {
         const inv = await auditor.scanInventory(staging)
         const dups = await auditor.findDuplicates(staging)
@@ -165,6 +170,29 @@ function registerDriveStatusTool(server: McpServer, deps: DriveDeps) {
 
 // ── Organize ───────────────────────────────────────────────────────────────
 
+/**
+ * Resuelve el staging pedido por el cliente DENTRO del workspace.
+ *
+ * La raíz la fija el operador en la configuración; un `staging_dir` del cliente
+ * solo puede apuntar ahí dentro (hallazgo F05).
+ */
+function resolveStaging(
+  root: string,
+  stagingDir: string | undefined,
+): { ok: true; path: string } | { ok: false; error: string } {
+  try {
+    return { ok: true, path: new WorkspacePolicy({ root }).resolveInside(stagingDir) }
+  } catch (err) {
+    if (err instanceof WorkspaceViolation) {
+      return {
+        ok: false,
+        error: `Ruta rechazada (${err.code}). El workspace es: ${resolve(root)}`,
+      }
+    }
+    throw err
+  }
+}
+
 function registerDriveOrganizeTool(
   server: McpServer,
   deps: DriveDeps,
@@ -189,7 +217,11 @@ function registerDriveOrganizeTool(
       annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: true },
     },
     async ({ dry_run, staging_dir, strategy }) => {
-      const staging = staging_dir ? resolve(staging_dir) : driveClient.stagingDir
+      const stagingResuelto = resolveStaging(driveClient.stagingDir, staging_dir)
+      if (!stagingResuelto.ok) {
+        return { isError: true, content: [{ type: 'text' as const, text: stagingResuelto.error }] }
+      }
+      const staging = stagingResuelto.path
       return withDrivePathLock(`staging:${staging}`, async () => {
       try {
         const plan = await auditor.buildOrganizePlan(staging, { strategy })
@@ -239,7 +271,11 @@ function registerDriveFormatReportTool(
       annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
     },
     async ({ staging_dir, response_format }) => {
-      const staging = staging_dir ? resolve(staging_dir) : driveClient.stagingDir
+      const stagingResuelto = resolveStaging(driveClient.stagingDir, staging_dir)
+      if (!stagingResuelto.ok) {
+        return { isError: true, content: [{ type: 'text' as const, text: stagingResuelto.error }] }
+      }
+      const staging = stagingResuelto.path
       try {
         const fmt = await auditor.formatReport(staging)
         if (response_format === 'json') {

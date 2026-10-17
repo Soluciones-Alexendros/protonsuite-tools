@@ -710,7 +710,16 @@ describe('drive tools (registered)', () => {
   })
 
   async function makeDriveClient() {
-    const { server } = buildServer(driveCfg, silentLog)
+    // La raíz del workspace es el directorio temporal: así el `staging_dir` que
+    // manda el cliente cae DENTRO y el sandbox lo acepta (F05).
+    const cfgConStaging = {
+      ...driveCfg,
+      products: {
+        ...driveCfg.products,
+        drive: { ...driveCfg.products.drive, stagingDir },
+      },
+    }
+    const { server } = buildServer(cfgConStaging, silentLog)
     const client = new Client({ name: 'test', version: '1.0.0' })
     const [clientT, serverT] = InMemoryTransport.createLinkedPair()
     await Promise.all([server.connect(serverT), client.connect(clientT)])
@@ -726,6 +735,18 @@ describe('drive tools (registered)', () => {
     expect(res.isError).not.toBe(true)
     const sc = res.structuredContent as { totalFiles: number }
     expect(sc.totalFiles).toBeGreaterThanOrEqual(1)
+    await client.close()
+  })
+
+  it('RECHAZA un staging_dir fuera del workspace (F05)', async () => {
+    const client = await makeDriveClient()
+    const res = await client.callTool({
+      name: 'proton_drive_audit',
+      arguments: { response_format: 'json', staging_dir: '/etc' },
+    })
+
+    expect(res.isError).toBe(true)
+    expect((res.content as { text: string }[])[0]!.text).toContain('Ruta rechazada')
     await client.close()
   })
 

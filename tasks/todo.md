@@ -110,8 +110,16 @@ Evidencia recogida para la decisión:
       niega y explica cómo hacerlo desde el terminal. `SECRETS_FROM_MODEL=true`
       restaura el modo antiguo, declarado y documentado como no seguro
 
-## P03 — Filesystem seguro (PR-03) · `proposed`
-- P03-O01 sandbox local (F05) · P03-O02 recorrido/hashing acotados (F25)
+## P03 — Filesystem seguro (PR-03) · `implemented`
+- [x] P03-O01 sandbox local (F05): `src/workspace.ts`. La raíz la fija el
+      operador; un `staging_dir` del cliente solo puede caer dentro. Rechaza
+      absolutos de fuera, `..`, recorrido codificado, byte nulo y enlaces que
+      salen (se compara el camino REAL, no el nombre). Conectado a las cinco
+      herramientas de Drive que aceptan ruta.
+- [x] P03-O02 recorrido y hashing acotados (F25): `walkDir` usa `lstat` (no sigue
+      enlaces), con tope de profundidad, ficheros y bytes, memoria de visitados y
+      cancelación; informa de `truncatedBy` en vez de fingir un recorrido
+      completo. `hashFile` pasa a streaming.
 
 ## P04 — Runtime, HTTP y cierre (PR-04) · `proposed`
 - P04-O01 ownership de dependencias (F19) · P04-O02 hardening HTTP (F20–F23, F27, F28)

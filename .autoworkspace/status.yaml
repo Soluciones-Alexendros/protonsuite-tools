@@ -1,0 +1,30 @@
+# Autoworkspace — estado declarativo.
+#
+# La fase del pipeline describe el trabajo EN CURSO. El plan de cierre se lleva
+# aparte, en tasks/todo.md, que es la fuente de verdad de las fases P00..P11.
+schema_version: 1
+version: 0.2.0
+phase: IMPLEMENT
+advance: 2
+last_skill: plan-specification
+checksum_spec: ""
+updated_at: "2026-10-17T00:00:00Z"
+history:
+  - advance: 0
+    version: 0.1.0
+    phase: DEFINE
+    skill: plan-specification
+    at: "2026-10-17T00:00:00Z"
+    note: "P00 baseline congelado (638850b); ledger F01-F44; ADR-0008 de alcance."
+  - advance: 1
+    version: 0.1.0
+    phase: IMPLEMENT
+    skill: role-back
+    at: "2026-10-17T00:00:00Z"
+    note: "P01 contencion (F01, F02, F04) y F18."
+  - advance: 2
+    version: 0.2.0
+    phase: IMPLEMENT
+    skill: plan-specification
+    at: "2026-10-17T00:00:00Z"
+    note: "P02 autorizacion completa (F03, F42, F43, F06) + ADR-0009."

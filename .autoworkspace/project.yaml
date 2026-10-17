@@ -1,0 +1,34 @@
+# Autoworkspace — variables de proyecto.
+# Estado real al 2026-10-17. Este repo sigue además su propio plan de cierre
+# (specs/production-close/ y tasks/todo.md), que manda sobre este fichero.
+schema_version: 1
+name: protonsuite-tools
+profile: P1
+forge: github.com
+stack:
+  languages: [typescript]
+  package_managers: [pnpm]
+paths:
+  tests: tests/
+  ci: .github/workflows
+  docs: docs
+skills:
+  enabled: []
+  disabled: []
+handoffs:
+  define: plan-specification
+  continue: plan-continue
+  implement_front: role-front
+  implement_back: role-back
+  implement_design: role-design
+  validate: plan-validation
+  integrate_hooks: project-hooks
+  integrate_publish: project-publish
+  libraries: project-libraries
+phases:
+  - DEFINE
+  - SCHEMAS
+  - IMPLEMENT
+  - VALIDATE
+  - INTEGRATE
+  - STATUS

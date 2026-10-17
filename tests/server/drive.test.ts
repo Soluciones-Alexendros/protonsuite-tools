@@ -237,13 +237,34 @@ describe("proton_drive_audit", () => {
     expect(parsed.obsoleteFiles).toHaveLength(1);
   });
 
-  it("uses custom staging_dir when provided", async () => {
+  it("acepta un staging_dir DENTRO del workspace", async () => {
     const tool = capturedTools.get("proton_drive_audit")!;
     await (tool.handler)({
-      staging_dir: "/custom/path",
+      staging_dir: "/tmp/staging/sub",
     } as never);
 
-    expect(mockAuditor.scanInventory).toHaveBeenCalledWith("/custom/path");
+    expect(mockAuditor.scanInventory).toHaveBeenCalledWith("/tmp/staging/sub");
+  });
+
+  it("RECHAZA un staging_dir fuera del workspace (F05)", async () => {
+    const tool = capturedTools.get("proton_drive_audit")!;
+    const result = (await (tool.handler)({
+      staging_dir: "/etc",
+    } as never)) as { isError?: boolean; content: { text: string }[] };
+
+    expect(result.isError).toBe(true);
+    expect(result.content[0]!.text).toContain("absolute-outside");
+    expect(mockAuditor.scanInventory).not.toHaveBeenCalled();
+  });
+
+  it("RECHAZA un staging_dir que se escapa con .. (F05)", async () => {
+    const tool = capturedTools.get("proton_drive_audit")!;
+    const result = (await (tool.handler)({
+      staging_dir: "../../etc",
+    } as never)) as { isError?: boolean; content: { text: string }[] };
+
+    expect(result.isError).toBe(true);
+    expect(mockAuditor.scanInventory).not.toHaveBeenCalled();
   });
 
   it("returns error when auditor throws", async () => {
@@ -463,14 +484,14 @@ describe("proton_drive_organize", () => {
     });
   });
 
-  it("uses custom staging_dir", async () => {
+  it("acepta un staging_dir dentro del workspace", async () => {
     const tool = capturedTools.get("proton_drive_organize")!;
     await (tool.handler)({
-      staging_dir: "/custom",
+      staging_dir: "/tmp/staging/sub",
       strategy: "reject",
     } as never);
 
-    expect(mockAuditor.buildOrganizePlan).toHaveBeenCalledWith("/custom", {
+    expect(mockAuditor.buildOrganizePlan).toHaveBeenCalledWith("/tmp/staging/sub", {
       strategy: "reject",
     });
   });
@@ -533,10 +554,10 @@ describe("proton_drive_format_report", () => {
   it("uses custom staging_dir", async () => {
     const tool = capturedTools.get("proton_drive_format_report")!;
     await (tool.handler)({
-      staging_dir: "/other",
+      staging_dir: "/tmp/staging/otro",
     } as never);
 
-    expect(mockAuditor.formatReport).toHaveBeenCalledWith("/other");
+    expect(mockAuditor.formatReport).toHaveBeenCalledWith("/tmp/staging/otro");
   });
 
   it("returns error when format throws", async () => {
