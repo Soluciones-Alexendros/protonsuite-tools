@@ -161,7 +161,7 @@ Contrato generado: [`docs/api/mcp-tools.md`](./docs/api/mcp-tools.md). Guía: [`
 | `setup` | Verifica Bridge (IMAP + SMTP) |
 | `organize` | Clasifica inbox, carpetas/etiquetas, amenazas |
 | `monitor` / `alert` | Solo lectura — alertas |
-| `pass-audit` | Fortaleza, duplicados, plan de rotación (dry-run) |
+| `pass-audit` | Fortaleza, duplicados y plan de rotación. **Solo lectura**: nunca escribe en el store. |
 | `suite-status` | Reporte cross-producto |
 | `discover` / `check-imap` | Conectividad |
 | Drive goals | `drive-audit`, `drive-organize`, … |

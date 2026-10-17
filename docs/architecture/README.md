@@ -19,3 +19,4 @@ Las decisiones estructurales están en [`../adr/`](../adr/) (ADR-0001, formato M
 | [0005](../adr/0005-calendar-caldav-stub-proton-dependency.md) | Calendar stub |
 | [0006](../adr/0006-drive-cli-fallback.md) | Drive vía CLI |
 | [0007](../adr/0007-spa-local-estatica.md) | SPA local estática |
+| [0008](../adr/0008-alcance-y-perfiles-soportados.md) | Alcance y perfiles soportados |

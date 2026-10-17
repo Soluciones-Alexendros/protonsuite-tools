@@ -1,0 +1,103 @@
+# P00-O02 — Contrato de producto y congelación de alcance (BORRADOR, sin aprobar).
+# Estado: pending-owner-approval. Ningún perfil queda declarado operativo por este fichero.
+
+schemaVersion: 1
+planId: PST-PROD-CLOSE-2026-10-17
+planRevision: "1.0"
+
+baseline:
+  status: reconfirmed
+  sourceSha: 638850bb3cf26126eee757a742323eb2ddcb20b4
+  sourceTree: fd96749ee139792ce6de69f2d025ac1f438d23b4
+  ref: refs/heads/main (origin)
+  worktreeTreeSha: fd96749ee139792ce6de69f2d025ac1f438d23b4
+  worktreeTreeIdenticalToBaseline: true
+  lockfileSha256: 3af38688d90c7465db247d78d6dac485ba96587a89ac1639b51745eaa5b7f359
+  node: v26.6.0
+  pnpm: 11.21.0
+  toolchainNote: "Node 26 excede el mínimo declarado (>=22); no se ha fijado toolchain todavía (F40)."
+
+# Anomalía de refs detectada en P00-O01. Requiere disposición del OWNER.
+refAnomaly:
+  - id: A01
+    what: "La rama local `chore/org-rename-complete` @ a8398b0 no tiene upstream; origin la eliminó."
+    impact: "Trabajo aparentemente huérfano."
+    resolution: "Contenido idéntico a origin/main (tree fd96749e). Cero trabajo único. Descartable."
+    actionNeeded: owner-acknowledgement
+  - id: A02
+    what: "`main` local (f49e4aa, tree fb9a6712) diverge del remoto y ELIMINA apps/web."
+    impact: "Usar `main` local como base borraría la SPA (38 ficheros, -2138 líneas)."
+    resolution: "No usar la ref local `main`. Base válida = origin/main."
+    actionNeeded: owner-acknowledgement
+  - id: A03
+    what: "server.json declara mcpName `io.github.Alexendros/protonsuite-agent` tras el rename a Soluciones-Alexendros."
+    impact: "Identidad MCP posiblemente obsoleta (relacionado con F37)."
+    resolution: "Verificar contra el registro MCP antes de cambiarlo; no es un defecto demostrado."
+    actionNeeded: owner-decision
+
+# Perfiles propuestos en el plan (§1.2). NINGUNO aprobado todavía.
+profiles:
+  - id: LOCAL-READ
+    gate: "P01 + autorización + límites + E2E Bridge"
+    proposed: include
+    approved: false
+  - id: LOCAL-WRITE
+    gate: "integridad/autoridad por operación"
+    proposed: pending
+    approved: false
+  - id: HTTP-SINGLE
+    gate: "P04/P07 + clientes + revocación"
+    proposed: include
+    approved: false
+  - id: PASS-UNIX
+    gate: "E2E por backend (pass | gopass)"
+    proposed: include
+    approved: false
+  - id: PASS-PROTON
+    gate: "adaptador real + E2E propio"
+    proposed: pending-ADR
+    approved: false
+  - id: DRIVE
+    gate: "ciclo real con hash"
+    proposed: pending
+    approved: false
+  - id: CALENDAR
+    gate: "backend no disponible (ADR-005)"
+    proposed: exclude
+    approved: false
+  - id: WEB-DEMO
+    gate: "etiqueta demo + pruebas UI"
+    proposed: include-as-demo
+    approved: false
+
+adrsRequired:
+  - id: ADR-SCOPE
+    status: not-written
+  - id: ADR-AUTHZ
+    status: not-written
+  - id: ADR-SECRETS
+    status: not-written
+  - id: ADR-RUNTIME
+    status: not-written
+  - id: ADR-FILES
+    status: not-written
+  - id: ADR-MCP
+    status: not-written
+  - id: ADR-RELEASE
+    status: not-written
+  - id: ADR-DIAGRAMS
+    status: not-written
+
+hardBlockers:
+  - id: B01
+    what: "F01 — pérdida destructiva de credenciales"
+    detail: >
+      src/agent/executor.ts:152-159 itera report.rotationPlan y llama
+      passClient.generate(path) para CADA entrada débil/duplicada/stale cuando
+      AGENT_DRY_RUN=false. src/pass.ts generate() ejecuta
+      `insert --multiline --force <path>`, que SOBRESCRIBE la entrada sin
+      confirmación ni backup. El log emite 'pass-audit regenerated'.
+      La contraseña del servicio (Bridge/Proton) no cambia: el resultado es
+      pérdida de credenciales + afirmación falsa de rotación.
+    evidence: "lectura de código en el baseline; ver findings-matrix.tsv F01"
+    dispositionRequired: "Deshabilitar la escritura en pass-audit ANTES de cualquier otra tarea (P01-O01)."

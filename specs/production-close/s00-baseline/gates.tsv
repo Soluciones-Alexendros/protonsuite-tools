@@ -1,0 +1,12 @@
+rev-parse-head	0	0,01
+status-porcelain	0	0,01
+install-frozen	0	6,94
+lint	0	3,64
+typecheck	0	2,49
+test	0	3,54
+build	0	3,43
+test-contract	0	1,18
+smoke	0	1,70
+coverage	0	3,18
+docs-generate	0	0,43
+docs-check	0	0,26
