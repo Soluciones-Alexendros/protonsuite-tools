@@ -47,6 +47,61 @@ import { VERSION } from './version.js'
 
 type Logger = ReturnType<typeof createLogger>
 
+/**
+ * Clientes compartidos por todo el proceso.
+ *
+ * Los pools de IMAP/SMTP y el cliente de Drive son RECURSOS: abren conexiones y
+ * procesos. Antes, cada sesión HTTP construía los suyos dentro de `buildServer`
+ * y nadie los cerraba (hallazgo F19): N sesiones = N pools abiertos. Ahora se
+ * construyen una vez y se inyectan.
+ */
+export interface RuntimeDependencies {
+  readonly imap: ImapClient;
+  readonly smtp: SmtpClient;
+  readonly drive?: DriveClient;
+}
+
+/** Resuelve la contraseña de Bridge, JIT desde el almacén si está configurado. */
+function makePasswordResolver(
+  cfg: Config,
+  log: Logger,
+  bridgeCfg: Config['products']['mail']['bridge'],
+): () => Promise<string> {
+  return cfg.products.pass.enabled && bridgeCfg.passPath
+    ? (() => {
+        const passClient = new PassClient(
+          {
+            storeDir: cfg.products.pass.storeDir,
+            backend: cfg.products.pass.backend ?? 'pass',
+          },
+          log,
+        );
+        const passPath = bridgeCfg.passPath;
+        return () => passClient.get(passPath);
+      })()
+    : () => Promise.resolve(bridgeCfg.pass);
+}
+
+/**
+ * Construye los clientes que duran toda la vida del proceso.
+ *
+ * Se llaman una vez. Quien los reciba es responsable de cerrarlos al apagar.
+ */
+export function buildRuntime(cfg: Config, log: Logger): RuntimeDependencies {
+  const bridgeCfg = cfg.products.mail.bridge;
+  const resolvedBridgeCfg = {
+    ...bridgeCfg,
+    passwordResolver: makePasswordResolver(cfg, log, bridgeCfg),
+  };
+  return {
+    imap: new ImapClient(resolvedBridgeCfg, log),
+    smtp: new SmtpClient(resolvedBridgeCfg, log),
+    ...(cfg.products.drive.enabled
+      ? { drive: new DriveClient(cfg.products.drive, log) }
+      : {}),
+  };
+}
+
 /** Firma laxa del manejador, para confinar los casts en un solo sitio. */
 type ToolHandlerLike = (...args: never[]) => unknown
 
@@ -54,6 +109,12 @@ type ToolHandlerLike = (...args: never[]) => unknown
 export function buildServer(
   cfg: Config,
   log: Logger,
+  /**
+   * Clientes ya construidos. Si se pasan, se REUTILIZAN: es lo que evita que
+   * cada sesión HTTP abra su propio pool. Si no, cada llamada crea los suyos,
+   * que es lo correcto para stdio (un proceso, un servidor).
+   */
+  runtime?: RuntimeDependencies,
 ): {
   server: McpServer
   imap: ImapClient
@@ -61,24 +122,10 @@ export function buildServer(
   drive?: DriveClient
 } {
   const bridgeCfg = cfg.products.mail.bridge
-  let passwordResolver: () => Promise<string>
-  if (cfg.products.pass.enabled && bridgeCfg.passPath) {
-    const passClient = new PassClient(
-      {
-        storeDir: cfg.products.pass.storeDir,
-        backend: cfg.products.pass.backend ?? 'pass',
-      },
-      log,
-    )
-    const passPath = bridgeCfg.passPath
-    passwordResolver = () => passClient.get(passPath)
-  } else {
-    passwordResolver = () => Promise.resolve(bridgeCfg.pass)
-  }
-  const resolvedBridgeCfg = { ...bridgeCfg, passwordResolver }
-
-  const imap = new ImapClient(resolvedBridgeCfg, log)
-  const smtp = new SmtpClient(resolvedBridgeCfg, log)
+  const passwordResolver = makePasswordResolver(cfg, log, bridgeCfg)
+  const deps = runtime ?? buildRuntime(cfg, log)
+  const imap = deps.imap
+  const smtp = deps.smtp
 
   const server = new McpServer(
     { name: 'protonsuite-agent', version: VERSION },
@@ -139,10 +186,8 @@ export function buildServer(
     registerAgentTools(server, { cfg, log, alerts })
   }
 
-  let driveClient: DriveClient | undefined
-  if (cfg.products.drive.enabled) {
-    driveClient = new DriveClient(cfg.products.drive, log)
-  }
+  // Si vienen inyectados se reutilizan; si no, se crean aquí.
+  const driveClient: DriveClient | undefined = deps.drive
 
   let passClient: PassClient | undefined
   if (cfg.products.pass.enabled) {
@@ -196,8 +241,6 @@ export function buildServer(
     smtp,
     ...(driveClient !== undefined ? { drive: driveClient } : {}),
   }
-
-
 }
 
 // ---------------------------------------------------------------------------

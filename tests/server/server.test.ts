@@ -16,7 +16,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { BridgeClient } from "../../src/bridge/bridge-client.js";
 import type { Config } from "../../src/config.js";
-import { buildServer } from "../../src/server.js";
+import { buildRuntime, buildServer } from "../../src/server.js";
 import { registerBridgeTools } from "../../src/server/bridge.js";
 
 // ---------------------------------------------------------------------------
@@ -610,5 +610,34 @@ describe("register wrapper — bridge client creation", () => {
     } finally {
       spyRegister.mockRestore();
     }
+  });
+});
+
+// ===========================================================================
+// F19 — Los recursos se comparten, no se duplican por sesión
+// ===========================================================================
+
+describe('buildServer · clientes compartidos', () => {
+  it('sin runtime, cada llamada crea los suyos', () => {
+    const a = buildServer(makeCfg(), silentLog as never);
+    const b = buildServer(makeCfg(), silentLog as never);
+
+    // Es lo correcto para stdio: un proceso, un servidor.
+    expect(a.imap).not.toBe(b.imap);
+    expect(a.smtp).not.toBe(b.smtp);
+  });
+
+  it('con runtime inyectado, se REUTILIZAN los mismos', () => {
+    const runtime = buildRuntime(makeCfg(), silentLog as never);
+
+    const sesion1 = buildServer(makeCfg(), silentLog as never, runtime);
+    const sesion2 = buildServer(makeCfg(), silentLog as never, runtime);
+
+    // Antes, cada sesión HTTP abría su propio pool y nadie lo cerraba: N
+    // sesiones, N pools. El comentario del código decía que se reutilizaban.
+    expect(sesion1.imap).toBe(runtime.imap);
+    expect(sesion2.imap).toBe(runtime.imap);
+    expect(sesion1.smtp).toBe(runtime.smtp);
+    expect(sesion2.smtp).toBe(runtime.smtp);
   });
 });

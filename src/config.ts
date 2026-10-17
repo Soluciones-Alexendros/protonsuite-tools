@@ -43,6 +43,11 @@ import { redact } from './security.js'
 // ---------------------------------------------------------------------------
 const EffectClassSchema = z.enum(['read', 'write', 'destructive', 'admin'])
 
+/** Cupo de sesiones MCP a la vez. */
+export const DEFAULT_MAX_SESSIONS = 32
+/** Peticiones MCP en curso a la vez. */
+export const DEFAULT_MAX_CONCURRENT_REQUESTS = 64
+
 /** Directorio por defecto de solicitudes y permisos de aprobación. */
 export const DEFAULT_APPROVAL_DIR = '.protonsuite/approvals'
 
@@ -92,6 +97,17 @@ const ConfigSchema = z.object({
     httpPort: z.number().int().positive().default(8787),
     authToken: z.string().optional(),
     allowedOrigins: z.array(z.string()).default([]),
+    /**
+     * Nombres de host admitidos en la cabecera `Host`. Vacío = se derivan del
+     * host configurado. Existe para frenar el «DNS rebinding»: una página web
+     * maliciosa puede resolver un nombre a 127.0.0.1 y hablar con el servidor
+     * local, pero mandará SU nombre en `Host` (hallazgo F27).
+     */
+    allowedHosts: z.array(z.string()).optional(),
+    /** Cupo de sesiones MCP simultáneas. Evita que crezcan sin freno (F23). */
+    maxSessions: z.number().int().positive().optional(),
+    /** Peticiones en curso a la vez. Más allá, se rechaza con 503 (F23). */
+    maxConcurrentRequests: z.number().int().positive().optional(),
   }),
   alerts: z.object({
     webhookUrl: z.url().optional(),
@@ -251,6 +267,12 @@ function parseTransportConfig(env: NodeJS.ProcessEnv) {
     httpPort: readInt(env['MCP_HTTP_PORT'], 8787),
     authToken: env['MCP_AUTH_TOKEN'] || undefined,
     allowedOrigins: readCsv(env['MCP_ALLOWED_ORIGINS']),
+    allowedHosts: readCsv(env['MCP_ALLOWED_HOSTS']),
+    maxSessions: readInt(env['MCP_MAX_SESSIONS'], DEFAULT_MAX_SESSIONS),
+    maxConcurrentRequests: readInt(
+      env['MCP_MAX_CONCURRENT'],
+      DEFAULT_MAX_CONCURRENT_REQUESTS,
+    ),
   }
 }
 

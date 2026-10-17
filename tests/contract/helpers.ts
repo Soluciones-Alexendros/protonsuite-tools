@@ -31,7 +31,7 @@ export const silentLog: ContractLogger = {
   debug: () => {},
 };
 
-export const AUTH_TOKEN = "expected-token";
+export const AUTH_TOKEN = "expected-token-para-pruebas";
 
 /** Config válida que habilita productos activos → 47 tools por defecto. */
 export function makeContractCfg(overrides?: Partial<Config>): Config {
