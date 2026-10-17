@@ -40,6 +40,17 @@ const { defaultConfig, mockLogFns, mockAlertFns, setupReportMock, failReportMock
     transport: { kind: 'stdio', httpHost: '127.0.0.1', httpPort: 8787, allowedOrigins: [] },
     alerts: { enabled: true, minSeverity: 'warning', logDir: 'logs' },
     agent: { dryRun: true, maxInspectEmails: 1000, minConfidence: 0.5 },
+    // Politica declarada a proposito: estas pruebas comprueban el comportamiento
+    // de los objetivos del agente, NO la autorizacion. El control del CLI se
+    // prueba en tests/agent/cli-authz.test.ts.
+    authz: {
+      mode: 'enforce',
+      actor: 'test',
+      approvalDir: '/tmp/test-executor-authz',
+      journalFile: '/tmp/test-executor-authz.jsonl',
+      allow: ['read', 'write', 'destructive', 'admin'],
+      requireApproval: [],
+    },
     logLevel: 'info',
   }
   return {
@@ -154,7 +165,9 @@ vi.mock('node:fs', async (importOriginal) => {
   const actual = await importOriginal<typeof import('node:fs')>()
   return {
     ...actual,
-    mkdirSync: vi.fn(),
+    // Se espía pero se deja pasar a la implementación real: el almacén de
+    // aprobaciones necesita crear directorios de verdad.
+    mkdirSync: vi.fn(actual.mkdirSync),
     renameSync: vi.fn(),
   }
 })
@@ -467,5 +480,79 @@ describe('runAgent · suite-manage', () => {
     expect(mockAlertFns.audit).toHaveBeenCalledWith('suite-manage', 'agent/executor', expect.objectContaining({
       totalBinaries: 3, installed: 2,
     }))
+  })
+})
+
+// ===========================================================================
+// El CLI del agente pasa por el MISMO control que las herramientas MCP.
+// Si no pasara, sería una vía para mutar sin autorización (hallazgo F03).
+// ===========================================================================
+
+describe('runAgent · control de autorización en el CLI', () => {
+  const DIR = '/tmp/test-executor-cli-authz'
+
+  function conPolitica(requireApproval: boolean): Config {
+    return {
+      ...withDriveEnabled(),
+      agent: { ...defaultConfig.agent, dryRun: false },
+      authz: {
+        mode: 'enforce',
+        actor: 'test',
+        approvalDir: DIR,
+        journalFile: null,
+        allow: requireApproval ? ['read'] : ['read', 'write', 'destructive', 'admin'],
+        requireApproval: requireApproval
+          ? ['write', 'destructive', 'admin']
+          : [],
+      },
+    }
+  }
+
+  it('sin aprobación, un objetivo que escribe NO se ejecuta y sale con 3', async () => {
+    vi.mocked(loadConfig).mockReturnValue(conPolitica(true))
+    const exitSpy = vi
+      .spyOn(process, 'exit')
+      .mockImplementation((() => undefined) as never)
+
+    await runAgent('drive-organize')
+
+    expect(mockApplyOrganizePlan).not.toHaveBeenCalled()
+    expect(exitSpy).toHaveBeenCalledWith(3)
+    expect(mockLogFns.error).toHaveBeenCalledWith(
+      expect.stringContaining('Sin ejecutar'),
+    )
+    exitSpy.mockRestore()
+  })
+
+  it('con la clase autorizada, el objetivo sí se ejecuta', async () => {
+    vi.mocked(loadConfig).mockReturnValue(conPolitica(false))
+    mockApplyOrganizePlan.mockReturnValue({ moved: 0, skipped: 0, failed: 0, results: [] })
+
+    await runAgent('drive-organize')
+
+    expect(mockApplyOrganizePlan).toHaveBeenCalled()
+  })
+
+  it('en modo seco no pide aprobación: no toca nada', async () => {
+    vi.mocked(loadConfig).mockReturnValue({
+      ...conPolitica(true),
+      agent: { ...defaultConfig.agent, dryRun: true },
+    })
+
+    await runAgent('drive-organize')
+
+    expect(mockApplyOrganizePlan).not.toHaveBeenCalled()
+    expect(mockLogFns.info).toHaveBeenCalledWith(
+      'drive-organize plan (dry-run)',
+      expect.anything(),
+    )
+  })
+
+  it('un objetivo de solo lectura no pide aprobación', async () => {
+    vi.mocked(loadConfig).mockReturnValue(conPolitica(true))
+
+    await runAgent('suite-status')
+
+    expect(mockLogFns.info).toHaveBeenCalledWith('suite status', expect.anything())
   })
 })

@@ -162,6 +162,52 @@ export const TOOL_EFFECTS: Readonly<Record<string, ToolEffect>> = {
     'Autentica en el Bridge con las credenciales principales.',
   ),
   proton_bridge_logout: admin(['bridge'], 'Cierra la sesión del Bridge.'),
+
+  // ── Objetivos del CLI del agente ────────────────────────────────────────
+  //
+  // No son herramientas MCP, pero se ejecutan desde la misma máquina y escriben
+  // igual. Se declaran aquí para que el mismo control los cubra: si no
+  // estuvieran, el CLI sería una vía para mutar sin autorización.
+  //
+  // Se marcan `readonlyWhenDryRun` porque el CLI respeta `AGENT_DRY_RUN`: si el
+  // operador no ha desactivado el modo seco, el objetivo no toca nada.
+  'agent:discover': read(['mailbox'], 'Comprueba el buzón; no cambia nada.'),
+  'agent:setup': read(['bridge'], 'Verifica conectividad; no cambia nada.'),
+  'agent:check-imap': read(['mailbox'], 'Comprueba IMAP; no cambia nada.'),
+  'agent:monitor': read(['mailbox'], 'Solo inspecciona.'),
+  'agent:alert': read(['mailbox'], 'Solo inspecciona y avisa.'),
+  'agent:pass-audit': read(
+    ['password-store'],
+    'Audita el almacén de secretos; es de solo lectura por diseño (F01).',
+  ),
+  'agent:suite-status': read([], 'Reporta estado; no cambia nada.'),
+  'agent:suite-manage': read([], 'Descubre binarios; no instala.'),
+  'agent:drive-audit': read(['drive-staging'], 'Inventaría el staging.'),
+  'agent:drive-list': read(['drive-remote'], 'Lista ficheros remotos.'),
+  'agent:organize': {
+    effectClass: 'write',
+    scopes: ['mailbox'],
+    reason: 'Mueve correo a carpetas según las reglas del agente.',
+    readonlyWhenDryRun: true,
+  },
+  'agent:drive-organize': {
+    effectClass: 'destructive',
+    scopes: ['drive-staging'],
+    reason: 'Mueve masivamente el staging; con colisión puede perder ficheros (F02).',
+    readonlyWhenDryRun: true,
+  },
+  'agent:drive-download': {
+    effectClass: 'write',
+    scopes: ['drive-staging'],
+    reason: 'Escribe ficheros en el staging local.',
+    readonlyWhenDryRun: true,
+  },
+  'agent:drive-upload': {
+    effectClass: 'write',
+    scopes: ['drive-remote'],
+    reason: 'Sube ficheros a Proton Drive.',
+    readonlyWhenDryRun: true,
+  },
 };
 
 /** Efecto declarado de una herramienta, o `undefined` si no está en el catálogo. */

@@ -9,9 +9,9 @@ Verificado de extremo a extremo en `tests/authz/guard-e2e.test.ts` (sin
 aprobación no se ejecuta; aprobada desde fuera, sí; cambiar un argumento la
 invalida; sin almacén, se deniega).
 
-**Pendiente para cerrar F03 del todo:** conectar también el CLI del agente y los
-jobs, y que los E2E que escriben declaren su política en vez de depender del
-valor por defecto.
+F03 queda cubierto en las herramientas MCP y en los objetivos del CLI. Los
+trabajos internos que no pasen por ninguno de los dos siguen pendientes de
+revisión.
 
 - Traza: `PST-PROD-CLOSE-2026-10-17` → fase P02, objetivo P02-O01.
 - Hallazgos: F03 (ausencia de aprobación vinculante), F43 (anotaciones que no
@@ -186,10 +186,20 @@ negativos, y coherencia catálogo ↔ `annotations`.
 | Aprobaciones con consumo único | hecho |
 | Auditoría con identificador de correlación | hecho |
 | Conectado a las herramientas MCP | hecho |
+| Conectado a los objetivos del CLI del agente | hecho |
 | Comando local `approve` / `reject` / `pending` | hecho |
 | `annotations` alineadas + test de contrato | hecho |
-| Conectar el CLI del agente y los jobs | pendiente |
-| Política explícita en los E2E que escriben | pendiente |
+| Política explícita en todo test que construya el servidor | hecho |
+
+Sobre los E2E: usan los adaptadores (`ImapClient`, `SmtpClient`) directamente, no
+el servidor MCP, así que **la autorización no está en su camino**. No es un
+agujero —esos tests no exponen ninguna superficie de decisión—, pero conviene
+tenerlo escrito para que nadie crea que esos E2E validan el control. Lo que valida
+el control son `guard.test.ts`, `guard-e2e.test.ts` y las pruebas del CLI.
+
+El CLI usa el mismo motor, el mismo almacén y el mismo diario que el servidor
+(`src/authz/runtime.ts`), y su sesión es estable entre ejecuciones (`cli:<host>`):
+si fuera el pid, una aprobación no valdría para el intento siguiente.
 
 Hallazgos corregidos de paso, encontrados por las propias pruebas:
 

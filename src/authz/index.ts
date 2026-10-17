@@ -44,7 +44,19 @@ export {
 
 export { Journal, type JournalEntry, type JournalOutcome } from './journal.js';
 
-export { guardTool, type GuardDeps, type ToolHandler } from './guard.js';
+export {
+  blockedReason,
+  guardTool,
+  type GuardDeps,
+  type ToolHandler,
+} from './guard.js';
+
+export {
+  buildAuthzRuntime,
+  DEFAULT_AUTHZ_SETTINGS,
+  type AuthzRuntime,
+  type AuthzSettings,
+} from './runtime.js';
 
 export {
   runApprovalCommand,

@@ -1,4 +1,10 @@
+import { hostname } from 'node:os'
 import { AlertSystem } from '../alerts/index.js'
+import {
+  blockedReason,
+  buildAuthzRuntime,
+  guardTool,
+} from '../authz/index.js'
 import { loadConfig, type Config } from '../config.js'
 import { createLogger } from '../config.js'
 import type { OrganizeApplyResult, OrganizePlan } from '../drive-audit.js'
@@ -26,12 +32,31 @@ export async function runAgent(
   alerts.audit('agent-start', 'agent/executor', { goal, dryRun: ctx.dryRun })
 
   const handler = goalHandlers[goal]
-  if (handler) {
-    const result = handler({ cfg, ctx, log, alerts })
-    if (result instanceof Promise) await result
-  } else {
+  if (!handler) {
     log.error(`Unknown agent goal: ${goal}`)
     process.exit(2)
+  }
+
+  // El CLI pasa por el MISMO control que las herramientas MCP. Si no pasara,
+  // sería una vía para mutar sin autorización (hallazgo F03).
+  const authz = buildAuthzRuntime(cfg.authz)
+  const guarded = guardTool(
+    `agent:${goal}`,
+    async () => handler({ cfg, ctx, log, alerts }),
+    { ...authz, log },
+  )
+
+  // La sesión del CLI tiene que ser ESTABLE entre ejecuciones: si fuera el pid,
+  // una aprobación no valdría para el intento siguiente.
+  const outcome = await guarded(
+    { dry_run: ctx.dryRun },
+    { sessionId: `cli:${hostname()}` },
+  )
+
+  const blocked = blockedReason(outcome)
+  if (blocked !== null) {
+    log.error(`Sin ejecutar: ${blocked}`)
+    process.exit(3)
   }
 
   alerts.audit('agent-end', 'agent/executor', { goal })

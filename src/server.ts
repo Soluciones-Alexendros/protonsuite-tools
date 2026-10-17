@@ -25,11 +25,8 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { AlertSystem } from './alerts/index.js'
 import {
-  ApprovalStore,
-  DEFAULT_POLICY,
+  buildAuthzRuntime,
   guardTool,
-  Journal,
-  type AuthzPolicyConfig,
   type ToolHandler,
 } from './authz/index.js'
 import { BridgeClient } from './bridge/bridge-client.js'
@@ -102,21 +99,7 @@ export function buildServer(
   //
   // Ver ADR-0009. El detalle de la decisión vive en `src/authz/guard.ts`.
   // ---------------------------------------------------------------------------
-  const authzCfg = cfg.authz
-  const authzPolicy: AuthzPolicyConfig = authzCfg
-    ? {
-        mode: authzCfg.mode,
-        allow: authzCfg.allow,
-        requireApproval: authzCfg.requireApproval,
-      }
-    : DEFAULT_POLICY
-  const authzStore = new ApprovalStore({
-    dir: authzCfg?.approvalDir ?? '.protonsuite/approvals',
-  })
-  const authzJournal = new Journal({
-    file: authzCfg ? authzCfg.journalFile : 'logs/authz.jsonl',
-  })
-  const authzActor = authzCfg?.actor ?? 'operator'
+  const authz = buildAuthzRuntime(cfg.authz)
 
   const rawRegisterTool = server.registerTool.bind(server)
   server.registerTool = ((
@@ -131,10 +114,7 @@ export function buildServer(
         const startedAt = Date.now()
         try {
           return await guardTool(name, cb as ToolHandler, {
-            policy: authzPolicy,
-            store: authzStore,
-            journal: authzJournal,
-            actor: authzActor,
+            ...authz,
             log,
           })(...callArgs)
         } finally {

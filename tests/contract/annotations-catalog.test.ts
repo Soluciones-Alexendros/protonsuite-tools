@@ -49,13 +49,16 @@ describe('contrato · anotaciones frente al catálogo de efectos', () => {
     const publicadas = new Set(tools.map((t) => t.name))
     const huerfanas = Object.keys(TOOL_EFFECTS).filter((n) => !publicadas.has(n))
 
-    // Puede haberlas legítimamente (Calendar experimental está oculto por
-    // defecto), pero conviene saber cuáles.
-    expect(huerfanas.sort()).toEqual([
+    // Puede haberlas legítimamente, y conviene tenerlas escritas:
+    //  - las de Calendar, que están ocultas salvo modo experimental;
+    //  - los objetivos del CLI del agente, que no son herramientas MCP pero se
+    //    declaran en el mismo catálogo para que el mismo control los cubra.
+    expect(huerfanas.filter((n) => !n.startsWith('agent:')).sort()).toEqual([
       'proton_calendar_create_event',
       'proton_calendar_list_calendars',
       'proton_calendar_list_events',
     ])
+    expect(huerfanas.filter((n) => n.startsWith('agent:')).length).toBeGreaterThan(0)
   })
 
   /** Perfil por defecto y perfil con Calendar experimental, ambos medidos. */

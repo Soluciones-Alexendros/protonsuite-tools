@@ -8,6 +8,7 @@ import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   ApprovalStore,
+  blockedReason,
   guardTool,
   Journal,
   type AuthzPolicyConfig,
@@ -201,5 +202,54 @@ describe('interceptor · permiso que no se puede consumir', () => {
     expect(handler).not.toHaveBeenCalled()
     expect(res.isError).toBe(true)
     expect(res.content[0]?.text).toContain('already-consumed')
+  })
+})
+
+describe('blockedReason · cómo decide salir el CLI', () => {
+  it('un resultado normal no es un bloqueo', () => {
+    expect(blockedReason({ content: [{ text: 'ok' }] })).toBeNull()
+    expect(blockedReason(null)).toBeNull()
+    expect(blockedReason('texto suelto')).toBeNull()
+    expect(blockedReason({ isError: false, content: [] })).toBeNull()
+  })
+
+  it('reconoce una aprobación pendiente y nombra la solicitud', () => {
+    const motivo = blockedReason({
+      isError: true,
+      structuredContent: { status: 'approval_required', approvalId: 'abc-123' },
+    })
+    expect(motivo).toContain('aprobación humana')
+    expect(motivo).toContain('abc-123')
+  })
+
+  it('si falta el identificador, no inventa uno', () => {
+    const motivo = blockedReason({
+      isError: true,
+      structuredContent: { status: 'approval_required' },
+    })
+    expect(motivo).toContain('?')
+  })
+
+  it('reconoce una denegación y usa su motivo', () => {
+    expect(
+      blockedReason({
+        isError: true,
+        structuredContent: { status: 'denied', reason: 'fuera del catálogo' },
+      }),
+    ).toBe('fuera del catálogo')
+  })
+
+  it('una denegación sin motivo cae al texto de la respuesta', () => {
+    expect(
+      blockedReason({
+        isError: true,
+        structuredContent: { status: 'denied' },
+        content: [{ text: 'Denegado: algo' }],
+      }),
+    ).toBe('Denegado: algo')
+  })
+
+  it('un error sin detalle sigue siendo un bloqueo', () => {
+    expect(blockedReason({ isError: true })).toBe('bloqueado')
   })
 })

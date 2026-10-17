@@ -222,3 +222,33 @@ export function guardTool(
     });
   };
 }
+
+/**
+ * Si el resultado es un bloqueo, devuelve el motivo; si no, `null`.
+ *
+ * Sirve para que un punto de entrada que no habla MCP (el CLI) sepa que la
+ * operación NO se ejecutó y pueda salir con un código distinto de cero.
+ */
+export function blockedReason(result: unknown): string | null {
+  if (result === null || typeof result !== 'object') return null;
+  const r = result as {
+    isError?: boolean;
+    structuredContent?: { status?: string; reason?: string; approvalId?: string };
+    content?: { text?: string }[];
+  };
+  if (r.isError !== true) return null;
+  const status = r.structuredContent?.status;
+  if (status === 'approval_required') {
+    return `necesita aprobación humana (solicitud ${r.structuredContent?.approvalId ?? '?'})`;
+  }
+  if (status === 'denied') {
+    // Mejor el motivo concreto que un «denegado» a secas; si no lo hay, el
+    // texto de la respuesta suele explicarlo.
+    return (
+      r.structuredContent?.reason ??
+      r.content?.[0]?.text ??
+      'denegado'
+    );
+  }
+  return r.content?.[0]?.text ?? 'bloqueado';
+}
