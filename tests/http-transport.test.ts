@@ -35,7 +35,7 @@ function cfg(overrides: Partial<Config["transport"]> = {}): Config {
           smtpPort: 1025,
           from: "x@y.com",
           tlsInsecure: true,
-          smtpSecurity: "starttls",
+          imapSecurity: "starttls", smtpSecurity: "starttls",
         },
       },
       pass: { enabled: false, storeDir: "/tmp" },

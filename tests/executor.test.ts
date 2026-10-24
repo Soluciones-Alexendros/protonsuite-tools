@@ -30,7 +30,7 @@ const { defaultConfig, mockLogFns, mockAlertFns, setupReportMock, failReportMock
         bridge: {
           user: 'test@proton.me', pass: 'x', host: '127.0.0.1',
           imapPort: 1143, smtpPort: 1025, from: 'test@proton.me',
-          tlsInsecure: true, smtpSecurity: 'starttls',
+          tlsInsecure: true, imapSecurity: 'starttls', smtpSecurity: 'starttls',
         },
       },
       pass: { enabled: false, storeDir: '~/.password-store' },
@@ -130,7 +130,7 @@ vi.mock('../src/config.js', () => ({
   resolveBridgeConfig: vi.fn().mockResolvedValue({
     user: 'test@proton.me', pass: 'x', passwordResolver: () => Promise.resolve('x'),
     host: '127.0.0.1', imapPort: 1143, smtpPort: 1025, from: 'test@proton.me',
-    tlsInsecure: true, smtpSecurity: 'starttls',
+    tlsInsecure: true, imapSecurity: 'starttls', smtpSecurity: 'starttls',
   }),
 }))
 

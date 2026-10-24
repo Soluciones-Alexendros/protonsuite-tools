@@ -145,6 +145,7 @@ const bridgeCfg: ResolvedBridgeConfig = {
   smtpPort: 1025,
   from: 'me@proton.me',
   tlsInsecure: true,
+  imapSecurity: 'starttls',
   smtpSecurity: 'starttls',
 }
 
@@ -939,6 +940,28 @@ describe('ImapClient · TLS', () => {
 
     expect(imapState.lastOptions?.['doSTARTTLS']).toBe(true)
     expect(imapState.lastOptions?.['secure']).toBe(false)
+  })
+
+  it('imapSecurity=plain no exige STARTTLS (harness GreenMail)', async () => {
+    const client = new ImapClient(
+      { ...bridgeCfg, imapSecurity: 'plain' },
+      silentLog as never,
+    )
+    await client.connect()
+
+    expect(imapState.lastOptions?.['doSTARTTLS']).toBe(false)
+    expect(imapState.lastOptions?.['secure']).toBe(false)
+  })
+
+  it('imapSecurity=implicit usa TLS desde el primer byte', async () => {
+    const client = new ImapClient(
+      { ...bridgeCfg, imapSecurity: 'implicit' },
+      silentLog as never,
+    )
+    await client.connect()
+
+    expect(imapState.lastOptions?.['doSTARTTLS']).toBe(false)
+    expect(imapState.lastOptions?.['secure']).toBe(true)
   })
 
   it('sin CA, no valida el certificado (y el logger lo avisa)', async () => {

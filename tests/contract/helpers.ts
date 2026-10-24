@@ -47,7 +47,7 @@ export function makeContractCfg(overrides?: Partial<Config>): Config {
           smtpPort: 1025,
           from: "contract@example.com",
           tlsInsecure: true,
-          smtpSecurity: "starttls",
+          imapSecurity: "starttls", smtpSecurity: "starttls",
         },
       },
       pass: { enabled: true, storeDir: "/tmp/test-pass-contract" },

@@ -34,6 +34,12 @@ export const MailBridgeSchema = z
     tlsInsecure: z.boolean().default(true),
     /** Ruta absoluta al PEM con la CA de Bridge. Con esto se puede validar. */
     caPath: z.string().optional(),
+    /**
+     * Cómo se cifra IMAP. Default `starttls` (F34): si el servidor no ofrece
+     * STARTTLS la conexión falla. `plain` solo para harnesses (GreenMail no
+     * anuncia STARTTLS en :3143). `implicit` = IMAPS desde el primer byte.
+     */
+    imapSecurity: z.enum(['starttls', 'implicit', 'plain']).default('starttls'),
     smtpSecurity: z.enum(['starttls', 'implicit', 'plain']).default('starttls'),
   })
   .refine((data) => data.pass.length > 0 || !!data.passPath, {
@@ -61,6 +67,10 @@ export function parseBridgeConfig(env: NodeJS.ProcessEnv) {
     ...(env['PROTON_BRIDGE_CA_PATH']
       ? { caPath: env['PROTON_BRIDGE_CA_PATH'] }
       : {}),
+    imapSecurity: (env['PROTON_BRIDGE_IMAP_SECURITY'] ?? 'starttls') as
+      | 'starttls'
+      | 'implicit'
+      | 'plain',
     smtpSecurity: (env['PROTON_BRIDGE_SMTP_SECURITY'] ?? 'starttls') as
       | 'starttls'
       | 'implicit'

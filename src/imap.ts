@@ -105,19 +105,16 @@ export class ImapClient {
 
   private async buildOpts(): Promise<ImapFlowOptions> {
     const resolvedPass = await this.cfg.passwordResolver()
+    const security = this.cfg.imapSecurity
+    // Default `starttls` (F34): ImapFlow exige STARTTLS; si el servidor no lo
+    // ofrece la conexión falla en vez de seguir en claro. `plain` solo para
+    // harnesses (GreenMail 2.1.x no anuncia STARTTLS en IMAP :3143).
+    // `implicit` = TLS desde el primer byte (IMAPS).
     return {
       host: this.cfg.host,
       port: this.cfg.imapPort,
-      // Bridge anuncia STARTTLS en su CAPABILITY (verificado 2026-05-18
-      // contra shenxn/protonmail-bridge 3.24.x): la conexión arranca plain
-      // e ImapFlow promueve automáticamente a TLS cuando el servidor anuncia
-      // STARTTLS. Paridad con src/smtp.ts:50.
-      secure: false,
-      // EXIGIR STARTTLS. La documentación de ImapFlow es explícita: sin pedirlo
-      // (`doSTARTTLS` sin definir), si el servidor no lo ofrece la conexión
-      // sigue EN CLARO, y «puede exponer la conexión a un ataque de downgrade».
-      // Con `true`, si no hay STARTTLS la conexión falla (hallazgo F34).
-      doSTARTTLS: true,
+      secure: security === 'implicit',
+      doSTARTTLS: security === 'starttls',
       // Con `PROTON_BRIDGE_CA_PATH` se valida de verdad. Sin ella se avisa.
       tls: buildTlsOptions(this.cfg, this.log),
       auth: { user: this.cfg.user, pass: resolvedPass },
