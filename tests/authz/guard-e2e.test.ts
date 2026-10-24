@@ -67,7 +67,7 @@ function makeCfg(): Config {
           smtpPort: 1025,
           from: 'op@proton.me',
           tlsInsecure: true,
-          smtpSecurity: 'starttls',
+          imapSecurity: 'starttls', smtpSecurity: 'starttls',
         },
       },
       pass: { enabled: false, storeDir: '/tmp/pass' },

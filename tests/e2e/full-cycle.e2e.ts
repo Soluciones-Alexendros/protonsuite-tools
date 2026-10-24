@@ -29,8 +29,10 @@ const bridge = {
   smtpPort: SMTP_PORT,
   from: USER,
   tlsInsecure: true,
+  // GreenMail 2.1.x no anuncia STARTTLS en IMAP :3143 ni lo exige en SMTP
+  // :3025. Producción sigue en starttls (F34); el harness usa plain.
+  imapSecurity: "plain",
   smtpSecurity: "plain",
-   
 } as any;
 
 const silentLog = { error() {}, warn() {}, info() {}, debug() {} };

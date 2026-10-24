@@ -74,7 +74,7 @@ function makeCfg(totpPath?: string): Config {
           smtpPort: 1025,
           from: 'op@proton.me',
           tlsInsecure: true,
-          smtpSecurity: 'starttls',
+          imapSecurity: 'starttls', smtpSecurity: 'starttls',
         },
       },
       pass: { enabled: true, storeDir: dir },

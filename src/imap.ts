@@ -35,6 +35,7 @@ import {
 } from './addresses.js'
 import type { ResolvedBridgeConfig } from './config.js'
 import { IMAP_MAX_RETRIES, IMAP_RETRY_BASE_MS, IMAP_MAX_IDLE_MS } from './constants.js'
+import { buildTlsOptions } from './tls.js'
 
 export interface EmailSummary {
   uid: number
@@ -104,18 +105,18 @@ export class ImapClient {
 
   private async buildOpts(): Promise<ImapFlowOptions> {
     const resolvedPass = await this.cfg.passwordResolver()
+    const security = this.cfg.imapSecurity
+    // Default `starttls` (F34): ImapFlow exige STARTTLS; si el servidor no lo
+    // ofrece la conexión falla en vez de seguir en claro. `plain` solo para
+    // harnesses (GreenMail 2.1.x no anuncia STARTTLS en IMAP :3143).
+    // `implicit` = TLS desde el primer byte (IMAPS).
     return {
       host: this.cfg.host,
       port: this.cfg.imapPort,
-      // Bridge anuncia STARTTLS en su CAPABILITY (verificado 2026-05-18
-      // contra shenxn/protonmail-bridge 3.24.x): la conexión arranca plain
-      // e ImapFlow promueve automáticamente a TLS cuando el servidor anuncia
-      // STARTTLS. Paridad con src/smtp.ts:50.
-      secure: false,
-      // `rejectUnauthorized: false` necesario cuando Bridge usa cert
-      // autofirmado. En producción estricta se puede pinear la CA de
-      // Bridge vía `PROTON_BRIDGE_CA_PATH` (roadmap).
-      tls: { rejectUnauthorized: !this.cfg.tlsInsecure },
+      secure: security === 'implicit',
+      doSTARTTLS: security === 'starttls',
+      // Con `PROTON_BRIDGE_CA_PATH` se valida de verdad. Sin ella se avisa.
+      tls: buildTlsOptions(this.cfg, this.log),
       auth: { user: this.cfg.user, pass: resolvedPass },
       // Delegamos el logger de imapflow a nuestro logger stderr para que
       // LOG_LEVEL=debug capture la conversación IMAP completa.

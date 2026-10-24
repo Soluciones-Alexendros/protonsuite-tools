@@ -27,13 +27,14 @@ function makeCfg(overrides?: Partial<ResolvedBridgeConfig>): ResolvedBridgeConfi
     smtpPort: 1025,
     from: "me@proton.me",
     tlsInsecure: true,
-    smtpSecurity: "starttls" as const,
+    imapSecurity: "starttls", smtpSecurity: "starttls" as const,
     passwordResolver: vi.fn().mockResolvedValue("resolved-pass"),
     ...overrides,
   };
 }
 
 const silentLog = {
+  warn: vi.fn(),
   info: vi.fn(),
   debug: vi.fn(),
 };

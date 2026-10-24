@@ -88,6 +88,15 @@ describe("loadConfig · env validation", () => {
     expect(loadConfig().products.mail.bridge.smtpSecurity).toBe("implicit");
   });
 
+  it("defaults imapSecurity to starttls and honors override", () => {
+    process.env.PROTON_BRIDGE_USER = "a@b.com";
+    process.env.PROTON_BRIDGE_PASS = "x";
+    process.env.PROTON_MAIL_FROM = "a@b.com";
+    expect(loadConfig().products.mail.bridge.imapSecurity).toBe("starttls");
+    process.env.PROTON_BRIDGE_IMAP_SECURITY = "plain";
+    expect(loadConfig().products.mail.bridge.imapSecurity).toBe("plain");
+  });
+
   it("reads custom bridge host and ports from env", () => {
     process.env.PROTON_BRIDGE_USER = "a@b.com";
     process.env.PROTON_BRIDGE_PASS = "x";

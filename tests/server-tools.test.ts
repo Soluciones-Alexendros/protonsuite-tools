@@ -143,7 +143,7 @@ const cfg: Config = {
         smtpPort: 1025,
         from: 'me@proton.me',
         tlsInsecure: true,
-        smtpSecurity: 'starttls' as const,
+        imapSecurity: 'starttls', smtpSecurity: 'starttls' as const,
       },
     },
     pass: { enabled: false, storeDir: '/tmp' },
