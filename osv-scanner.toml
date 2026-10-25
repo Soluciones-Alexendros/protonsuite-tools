@@ -1,0 +1,22 @@
+# Residuales medium aceptados — ver SECURITY.md.
+# No ignorar high/critical sin triage y entrada en SECURITY.md.
+
+[[IgnoredVulns]]
+id = "GHSA-82fw-gwwq-j7x9"
+reason = "Vitest 4 aplazado (gate de cobertura de ramas); solo toolchain de tests"
+
+[[IgnoredVulns]]
+id = "GHSA-qxg6-89mg-rqv8"
+reason = "Vitest mocker; mismo aplazamiento que Vitest 4; solo toolchain"
+
+[[IgnoredVulns]]
+id = "GHSA-85x2-q946-cp5h"
+reason = "nodemailer medium; parche 10.1.4 fuera de Ronda 2; no high"
+
+[[IgnoredVulns]]
+id = "GHSA-8c8m-p3m8-cjg8"
+reason = "nodemailer medium; parche 10.1.4 fuera de Ronda 2; no high"
+
+[[IgnoredVulns]]
+id = "GHSA-m943-m63m-w62w"
+reason = "nodemailer medium; parche 10.1.4 fuera de Ronda 2; no high"

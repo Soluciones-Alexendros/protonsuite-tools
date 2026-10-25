@@ -1,0 +1,11 @@
+[extend]
+useDefault = true
+
+# Fixture de BridgeClient: "Password: abc123def456" simula la salida de
+# `bridge info` (F04 — el DTO no debe propagar la contraseña). No es un secreto.
+[[allowlists]]
+description = "Fixture Password en tests/bridge/bridge-client.test.ts (salida simulada de bridge info)"
+condition = "AND"
+paths = ['''(?:^|/)tests/bridge/bridge-client\.test\.ts$''']
+regexTarget = "line"
+regexes = ['''Password:\s+\S+''']
