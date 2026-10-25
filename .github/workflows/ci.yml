@@ -118,8 +118,8 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup-project
-      - name: Critical vulnerabilities only
-        run: pnpm audit --audit-level=critical
+      - name: High and critical vulnerabilities
+        run: pnpm audit --audit-level=high
 
   # E2E preexistente (GreenMail). No se inventa como required nuevo; se conserva
   # el job vivo. Opt-in de nuevos e2e: no añadir más jobs frágiles a required.
