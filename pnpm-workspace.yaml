@@ -31,3 +31,5 @@ overrides:
   undici: ">=8.10.2"
   glob: ">=11.0.0"
   vite: "7.3.7"
+  body-parser: ">=2.4.0"
+  zod: ">=4.6.6"

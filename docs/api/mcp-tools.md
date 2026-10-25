@@ -109,13 +109,9 @@ hints) so MCP clients can reason about effects before invoking.
             "type": "string"
           },
           "specialUse": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
+            "type": [
+              "string",
+              "null"
             ]
           },
           "flags": {
@@ -125,13 +121,9 @@ hints) so MCP clients can reason about effects before invoking.
             }
           },
           "delimiter": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
+            "type": [
+              "string",
+              "null"
             ]
           },
           "subscribed": {
