@@ -74,17 +74,11 @@ jobs:
         with:
           node-version: 22
           registry-url: https://registry.npmjs.org
-      # npm ≥ 11.5.1 también sirve para OIDC si se reactiva Trusted Publisher.
-      # Pin por commit (Scorecard/zizmor): corepack no sustituye el npm del
-      # runtime Node 22; git+https#sha40 sí cuenta como dependencia pinneada.
-      - name: Ensure npm CLI (≥11.5.1)
-        run: |
-          set -euo pipefail
-          # npm/cli@v11.5.1 → da1d4d299151781500ec854f10eb7e570696d506
-          npm install -g 'git+https://github.com/npm/cli.git#da1d4d299151781500ec854f10eb7e570696d506'
-          VER="$(npm --version)"
-          echo "npm=${VER}"
-          node -e "const [maj,min,pat]='$VER'.split('.').map(Number); if(!(maj>11||(maj===11&&(min>5||(min===5&&pat>=1))))){console.error('need npm>=11.5.1, got', '$VER'); process.exit(1)}"
+      # Publicación actual vía NPM_TOKEN (org). No hay `npm install -g` aquí:
+      # Scorecard marca cualquier install de registro como npmCommand unpinned, y
+      # `git+https://github.com/npm/cli.git#…` falló en CI (build del CLI).
+      # Cuando se reactive Trusted Publisher OIDC, subir node-version a 24+ (npm≥11.5.1)
+      # o documentar un pin aceptado por Scorecard.
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
       - name: npm registry status
