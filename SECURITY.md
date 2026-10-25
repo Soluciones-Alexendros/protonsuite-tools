@@ -114,25 +114,26 @@ This project follows the following baseline for open-source AI agents that opera
 
 ## Dependency audit exceptions
 
-The CI job `Dependency audit` runs `pnpm audit --audit-level=critical` over the whole
-workspace. Production dependencies must stay clean; any exception below is
-traceable, owned and time-boxed.
+The CI job `Dependency audit` runs `pnpm audit --audit-level=high` over the whole
+workspace (high **and** critical). Production dependencies must stay clean of
+high/critical; any exception below is traceable, owned and time-boxed.
 
-**Current state.** `pnpm audit --prod` reports no known vulnerabilities. The
-whole tree (dev included) keeps two unfixed advisories:
+**Current state.** `pnpm audit --prod --audit-level=high` reports no high or
+critical vulnerabilities. Residual **medium** advisories (visible in the audit
+log, not allowlisted in the CI gate):
 
 | Advisory | Package | Why it is still open | Owner | Review by |
 |---|---|---|---|---|
-| GHSA-vfj7-8cjw-p6xm (high) | `braces@3.0.3` via `micromatch` → `semantic-release` | The advisory asks for `>=3.0.4`, which **is not published** on npm (`3.0.3` is the latest). Not reachable from runtime code: `semantic-release` is build-time tooling only. | REL | 2027-01-17 |
-| GHSA vitest / `@vitest/mocker` (moderate) | `vitest@3.2.7` | Fix requires `vitest >= 4.1.11`, a major bump of the test runner. Dev-only. Tracked as its own change, not bundled into a security patch. | QA | 2027-01-17 |
+| GHSA vitest / `@vitest/mocker` (moderate) | `vitest@3.2.7` | Fix requires `vitest >= 4.1.11`, a major bump of the test runner. Dev-only. Vitest 4 deferred (branch coverage gate). | QA | 2027-01-17 |
+| GHSA nodemailer (moderate) | `nodemailer` | Patch available at `>=10.1.4`. Outside Ronda 2; tracked separately. | REL | 2027-01-17 |
 
 Rules for this list:
 
 - An exception must name a **reachability argument**, an owner and a review date.
 - Exceptions never cover a known loss of secrets or data.
-- Resolve by upgrading, never by relaxing the gate to `--audit-level=high` or
-  removing the job.
-- Verify with `pnpm install --frozen-lockfile && pnpm audit --prod --audit-level=low`.
+- Resolve by upgrading. Do **not** lower the gate back to `--audit-level=critical`
+  or remove the job.
+- Verify with `pnpm install --frozen-lockfile && pnpm audit --prod --audit-level=high`.
 
 ---
 
