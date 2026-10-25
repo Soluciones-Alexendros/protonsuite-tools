@@ -95,7 +95,7 @@
     "imapflow": "^1.6.6",
     "mailparser": "^3.9.40",
     "nodemailer": "^10.1.2",
-    "zod": "^4.3.6"
+    "zod": "^4.6.6"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.2.1",
