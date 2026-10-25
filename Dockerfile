@@ -1,7 +1,8 @@
-# ---- Builder ----
-FROM node:22-alpine AS builder
+# node:22-alpine — digest verified 2026-10-25 (Node 22 / Alpine 3.24)
+FROM node:22-alpine@sha256:fe4f6d74e20370acb04ad889077d14d0f64a9c8ea6a42bc60cddf1e844699914 AS builder
 WORKDIR /app
-RUN npm install -g pnpm@11
+# pnpm 12.15.0 — same major/minor as CI (setup-project → latest)
+RUN corepack enable && corepack prepare pnpm@12.15.0 --activate
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 ENV HUSKY=0
 RUN pnpm install --frozen-lockfile
@@ -10,28 +11,20 @@ COPY src ./src
 RUN pnpm run build
 
 # ---- Runtime ----
-FROM node:22-alpine AS runtime
+FROM node:22-alpine@sha256:fe4f6d74e20370acb04ad889077d14d0f64a9c8ea6a42bc60cddf1e844699914 AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
-RUN npm install -g pnpm@11
+# pnpm 12.15.0 — same major/minor as CI (setup-project → latest)
+RUN corepack enable && corepack prepare pnpm@12.15.0 --activate
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 RUN pnpm install --prod --frozen-lockfile --ignore-scripts
 COPY --from=builder /app/dist ./dist
 
-# Optional: Proton Drive CLI (descargado de proton.me/support/drive-cli).
-# ARG DRIVE_CLI_URL=https://proton.me/download/drive/cli/linux/proton-drive
-# Si la URL falla en build-time, el contenedor arranca igual; el operador puede
-# instalar el binario manualmente o re-build con DRIVE_CLI_URL apuntando a su
-# mirror. El auth token del CLI se persiste en /home/node/.config/proton-drive
+# Proton Drive CLI: no se descarga en build (proton.me no ofrece URL pinneable
+# por digest; Scorecard Pinned-Dependencies). El operador lo instala en el host
+# o en el contenedor en marcha — ver docs/drive-audit.md y ADR-006.
+# El auth token del CLI se persiste en /home/node/.config/proton-drive
 # (volumen `drive-auth-data` en docker-compose.yml).
-ARG DRIVE_CLI_URL=https://proton.me/download/drive/cli/linux/proton-drive
-RUN if [ -n "${DRIVE_CLI_URL}" ]; then \
-      echo "Installing proton-drive CLI from ${DRIVE_CLI_URL}"; \
-      wget -q "${DRIVE_CLI_URL}" -O /usr/local/bin/proton-drive \
-        && chmod +x /usr/local/bin/proton-drive \
-        && /usr/local/bin/proton-drive --version || \
-        echo "WARN: proton-drive CLI failed to install from ${DRIVE_CLI_URL}"; \
-    fi
 
 # Listen on all interfaces inside the container (network policy is enforced by the reverse proxy)
 ENV MCP_HTTP_HOST=0.0.0.0

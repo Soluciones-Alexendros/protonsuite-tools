@@ -49,11 +49,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      args:
-        # URL del CLI oficial. Si tu red requiere mirror, sobreescribe aquí.
-        # El CLI se descarga en build-time; si falla, el contenedor sigue
-        # arrancando y puedes instalarlo manualmente.
-        # DRIVE_CLI_URL=https://proton.me/download/drive/cli/linux/proton-drive
+      # El Dockerfile ya no descarga proton-drive en build (URL no pinneable).
+      # Instala el CLI en el host o dentro del contenedor en marcha:
+      #   docs/drive-audit.md · ADR-006
     restart: unless-stopped
     depends_on:
       proton-bridge:
