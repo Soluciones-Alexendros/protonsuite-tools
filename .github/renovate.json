@@ -1,18 +1,16 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": [
-    "local>Soluciones-Alexendros/infraestructura-stack:renovate-presets/default",
-    "local>Soluciones-Alexendros/infraestructura-stack:renovate-presets/node"
-  ],
+  "extends": ["config:recommended"],
   "timezone": "Europe/Madrid",
-  "schedule": ["before 5am on Monday"],
-  "dependencyDashboard": true,
+  "schedule": ["before 7am"],
   "labels": ["dependencies"],
-  "assignees": ["Alexendros"],
-  "separateMinorPatch": false,
-  "rebaseWhen": "behind-base-branch",
-  "prHourlyLimit": 2,
-  "semanticCommits": "enabled",
+  "rangeStrategy": "bump",
+  "dependencyDashboard": true,
+  "dependencyDashboardApproval": true,
+  "minimumReleaseAge": "3 days",
+  "internalChecksFilter": "strict",
+  "platformAutomerge": false,
+  "automerge": false,
   "vulnerabilityAlerts": {
     "enabled": true,
     "schedule": ["before 10am every weekday"],
@@ -22,39 +20,27 @@
   },
   "lockFileMaintenance": {
     "enabled": true,
-    "schedule": ["before 3am on Monday"],
+    "schedule": ["before 7am on monday"],
     "automerge": false
   },
   "packageRules": [
     {
-      "description": "Agrupar y automergear patch+minor npm (canon P1). Requiere CI verde.",
-      "matchDatasources": ["npm"],
-      "matchUpdateTypes": ["minor", "patch"],
-      "groupName": "npm patch+minor",
-      "automerge": true,
-      "automergeType": "pr",
-      "addLabels": ["dependencies"]
+      "description": "Majors: revisión humana y cuarentena de 14 días. Fase A sin automerge.",
+      "matchUpdateTypes": ["major"],
+      "minimumReleaseAge": "14 days",
+      "automerge": false
     },
     {
-      "description": "MCP SDK: núcleo de protocolo (ADR-002). Nunca automerge.",
+      "description": "GitHub Actions: revisión humana, sin automerge.",
+      "matchManagers": ["github-actions"],
+      "automerge": false
+    },
+    {
+      "description": "MCP SDK: contrato de protocolo. Sin automerge.",
       "matchPackageNames": ["@modelcontextprotocol/sdk"],
       "groupName": "MCP SDK",
       "automerge": false,
-      "schedule": ["at any time"],
       "addLabels": ["mcp", "mcp-sdk", "dependencies"]
-    },
-    {
-      "description": "Majors: siempre revisión manual.",
-      "matchUpdateTypes": ["major"],
-      "automerge": false,
-      "schedule": ["at any time"],
-      "addLabels": ["breaking-change"]
-    },
-    {
-      "description": "GitHub Actions (SHA pinneados): sin automerge.",
-      "matchDatasources": ["github-actions"],
-      "automerge": false,
-      "addLabels": ["dependencies"]
     },
     {
       "description": "Imágenes Docker: pin a digest, sin automerge.",
