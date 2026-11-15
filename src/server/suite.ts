@@ -1,8 +1,6 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
-import type { IImapClient } from '../clients/interfaces.js'
-import type { IPassClient } from '../clients/interfaces.js'
+import type { IDriveClient, IImapClient, IPassClient } from '../clients/interfaces.js'
 import type { createLogger, Config } from '../config.js'
-import type { DriveClient } from '../drive.js'
 
 type Logger = ReturnType<typeof createLogger>
 
@@ -15,7 +13,7 @@ export function registerSuiteTool(
     cfg: Config
     log: Logger
     imap: IImapClient
-    driveClient: DriveClient | undefined
+    driveClient: IDriveClient | undefined
     passwordResolver: () => Promise<string>
     bridgeCfg: Config['products']['mail']['bridge']
     passClient: IPassClient | undefined

@@ -71,7 +71,7 @@ Servidores Proton (cifrado E2E)
 | `imap.ts` / `smtp.ts` | Pools Bridge |
 | `pass.ts` | `PassClient`: `pass` o `gopass` |
 | `drive.ts` | `DriveClient`: CLI oficial `{ ok, error? }` |
-| `clients/interfaces.ts` | Puertos `IImapClient`, `ISmtpClient`, `IDriveClient`, `IPassClient`, `ICalendarAdapter` |
+| `clients/interfaces.ts` | Puertos `IImapClient`, `ISmtpClient`, `IPassClient`, `IDriveClient` (Calendar: sin puerto hasta CalDAV, ADR-005) |
 | `agent/*` | Goals, organización, executor |
 | `alerts/*` | Reglas + sinks file/webhook/ntfy |
 | `ecosystem/*` | Discovery/install de binarios |

@@ -19,6 +19,7 @@ import { randomBytes, createHash } from 'node:crypto'
 import { readdir, stat, copyFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { join as joinPath, resolve as resolvePath } from 'node:path'
+import type { IPassClient } from './clients/interfaces.js'
 import { runProcess } from './process-runner.js'
 
 export type PassBackend = 'pass' | 'gopass'
@@ -83,7 +84,7 @@ export interface PassAuditResult {
   [key: string]: unknown
 }
 
-export class PassClient {
+export class PassClient implements IPassClient {
   private readonly storeDir: string
   private readonly binary: string
   private readonly staleAfterMs: number
