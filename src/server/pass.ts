@@ -1,7 +1,7 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { z } from 'zod'
 import { secretsFromModel, type createLogger, type Config } from '../config.js'
-import { PassClient } from '../pass.js'
+import { createPassClient } from '../pass.js'
 
 type Logger = ReturnType<typeof createLogger>
 
@@ -11,13 +11,7 @@ export function registerPassTools(
 ) {
   const { cfg, log } = deps
   if (!cfg.products.pass.enabled) return
-  const passClient = new PassClient(
-    {
-      storeDir: cfg.products.pass.storeDir,
-      backend: cfg.products.pass.backend ?? 'pass',
-    },
-    log,
-  )
+  const passClient = createPassClient(cfg.products.pass, log)
 
   server.registerTool(
     'proton_pass_list',

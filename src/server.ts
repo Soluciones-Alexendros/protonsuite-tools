@@ -33,7 +33,7 @@ import { BridgeClient } from './bridge/bridge-client.js'
 import { secretsFromModel, type createLogger, type Config } from './config.js'
 import { DriveClient } from './drive.js'
 import { ImapClient } from './imap.js'
-import { PassClient } from './pass.js'
+import { createPassClient, type PassClient } from './pass.js'
 import { registerAgentTools } from './server/agent.js'
 import { registerBridgeTools } from './server/bridge.js'
 import { registerCalendarTools } from './server/calendar.js'
@@ -69,13 +69,7 @@ function makePasswordResolver(
 ): () => Promise<string> {
   return cfg.products.pass.enabled && bridgeCfg.passPath
     ? (() => {
-        const passClient = new PassClient(
-          {
-            storeDir: cfg.products.pass.storeDir,
-            backend: cfg.products.pass.backend ?? 'pass',
-          },
-          log,
-        );
+        const passClient = createPassClient(cfg.products.pass, log);
         const passPath = bridgeCfg.passPath;
         return () => passClient.get(passPath);
       })()
@@ -191,13 +185,7 @@ export function buildServer(
 
   let passClient: PassClient | undefined
   if (cfg.products.pass.enabled) {
-    passClient = new PassClient(
-      {
-        storeDir: cfg.products.pass.storeDir,
-        backend: cfg.products.pass.backend ?? 'pass',
-      },
-      log,
-    )
+    passClient = createPassClient(cfg.products.pass, log)
   }
 
   registerPassTools(server, { cfg, log })
@@ -212,13 +200,7 @@ export function buildServer(
     const totpResolver =
       cfg.products.pass.enabled && totpPath
         ? async () => {
-            const client = new PassClient(
-              {
-                storeDir: cfg.products.pass.storeDir,
-                backend: cfg.products.pass.backend ?? 'pass',
-              },
-              log,
-            )
+            const client = createPassClient(cfg.products.pass, log)
             return client.get(totpPath)
           }
         : undefined

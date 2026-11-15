@@ -460,6 +460,27 @@ export class PassClient implements IPassClient {
   }
 }
 
+/**
+ * Fábrica canónica de `PassClient`.
+ *
+ * Antes cada llamador repetía el mismo objeto `{ storeDir, backend ?? 'pass' }`
+ * en seis sitios (server.ts ×3, config.ts, server/pass.ts, agent/executor.ts).
+ * Centralizar aquí evita que un backend nuevo o un default distinto se olvide
+ * de aplicar en alguno de ellos.
+ */
+export function createPassClient(
+  cfg: { storeDir: string; backend?: PassBackend | undefined },
+  log: PassLogger,
+): PassClient {
+  return new PassClient(
+    {
+      storeDir: cfg.storeDir,
+      backend: cfg.backend ?? 'pass',
+    },
+    log,
+  )
+}
+
 export class PassError extends Error {
   constructor(
     message: string,

@@ -197,20 +197,14 @@ export async function resolveBridgeConfig(
 ): Promise<ResolvedBridgeConfig> {
   const bridge = cfg.products.mail.bridge
   if (cfg.products.pass.enabled && bridge.passPath) {
-    const { PassClient } = await import('./pass.js')
+    const { createPassClient } = await import('./pass.js')
     const passLog = {
       debug: log.debug,
       info: log.info,
       warn: log.warn ?? log.debug,
       error: log.error ?? log.info,
     }
-    const passClient = new PassClient(
-      {
-        storeDir: cfg.products.pass.storeDir,
-        backend: cfg.products.pass.backend ?? 'pass',
-      },
-      passLog,
-    )
+    const passClient = createPassClient(cfg.products.pass, passLog)
     const passPath = bridge.passPath
     return {
       ...bridge,
