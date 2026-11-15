@@ -1,5 +1,6 @@
 import { execFileSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
+import { ECO_DISCOVERY_TIMEOUT_MS } from '../constants.js'
 import { whichSync } from '../which.js'
 import { REGISTRY, type BinaryInfo, type BinaryVersion } from './binaries.js'
 
@@ -42,7 +43,7 @@ export function checkBinary(bin: BinaryInfo): BinaryVersion {
   try {
     const out = execFileSync(path, bin.versionCmd, {
       encoding: 'utf-8',
-      timeout: 5000,
+      timeout: ECO_DISCOVERY_TIMEOUT_MS,
     })
     version = out.trim().split('\n')[0] ?? undefined
   } catch {
@@ -54,7 +55,7 @@ export function checkBinary(bin: BinaryInfo): BinaryVersion {
     try {
       execFileSync(path, bin.healthCmd, {
         encoding: 'utf-8',
-        timeout: 5000,
+        timeout: ECO_DISCOVERY_TIMEOUT_MS,
       })
       authenticated = true
     } catch {

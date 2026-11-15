@@ -26,7 +26,6 @@
  *  - CalendarConfigSchema, CalendarConfig, parseCalendarConfig
  */
 import { z } from 'zod'
-
 // Sub-módulos de producto
 import { MailBridgeSchema, parseBridgeConfig } from './config/bridge.js'
 import type { BridgeConfig, ResolvedBridgeConfig } from './config/bridge.js'
@@ -36,6 +35,7 @@ import { DriveConfigSchema, parseDriveConfig } from './config/drive.js'
 import type { DriveConfig } from './config/drive.js'
 import { PassConfigSchema, parsePassConfig } from './config/pass.js'
 import type { PassConfig } from './config/pass.js'
+import { AGENT_DEFAULT_MAX_INSPECT, AGENT_DEFAULT_MIN_CONFIDENCE } from './constants.js'
 import { redact } from './security.js'
 
 // ---------------------------------------------------------------------------
@@ -146,8 +146,8 @@ const ConfigSchema = z.object({
   secrets: z.object({ fromModel: z.boolean().default(false) }).optional(),
   agent: z.object({
     dryRun: z.boolean().default(true),
-    maxInspectEmails: z.number().int().positive().default(1000),
-    minConfidence: z.number().min(0).max(1).default(0.6),
+    maxInspectEmails: z.number().int().positive().default(AGENT_DEFAULT_MAX_INSPECT),
+    minConfidence: z.number().min(0).max(1).default(AGENT_DEFAULT_MIN_CONFIDENCE),
   }),
   authz: AuthzConfigSchema.optional(),
   logLevel: z.enum(['error', 'warn', 'info', 'debug']).default('info'),
@@ -305,8 +305,8 @@ function parseAlertConfig(env: NodeJS.ProcessEnv) {
 function parseAgentConfig(env: NodeJS.ProcessEnv) {
   return {
     dryRun: readBool(env['AGENT_DRY_RUN'], true),
-    maxInspectEmails: readInt(env['AGENT_MAX_INSPECT_EMAILS'], 1000),
-    minConfidence: Number(env['AGENT_MIN_CONFIDENCE'] ?? '0.6'),
+    maxInspectEmails: readInt(env['AGENT_MAX_INSPECT_EMAILS'], AGENT_DEFAULT_MAX_INSPECT),
+    minConfidence: Number(env['AGENT_MIN_CONFIDENCE'] ?? AGENT_DEFAULT_MIN_CONFIDENCE),
   }
 }
 

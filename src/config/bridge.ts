@@ -5,6 +5,7 @@
  * Sin dependencias circulares — solo importa zod.
  */
 import { z } from 'zod'
+import { BRIDGE_IMAP_PORT, BRIDGE_SMTP_PORT } from '../constants.js'
 
 // ---------------------------------------------------------------------------
 // Mail Bridge schema — compartido entre ConfigSchema y el runtime para
@@ -23,8 +24,8 @@ export const MailBridgeSchema = z
     // que el segundo factor NO tenga que pasar por el modelo (hallazgo F06).
     totpPath: z.string().optional(),
     host: z.string().default('127.0.0.1'),
-    imapPort: z.number().int().positive().default(1143),
-    smtpPort: z.number().int().positive().default(1025),
+    imapPort: z.number().int().positive().default(BRIDGE_IMAP_PORT),
+    smtpPort: z.number().int().positive().default(BRIDGE_SMTP_PORT),
     from: z.email('PROTON_MAIL_FROM must be a valid email'),
     /**
      * Si es `true`, NO se valida el certificado del servidor. Viene a `true`
@@ -60,8 +61,8 @@ export function parseBridgeConfig(env: NodeJS.ProcessEnv) {
     pass: (env['PROTON_BRIDGE_PASS'] ?? '').trim(),
     passPath: env['PROTON_BRIDGE_PASS_PATH'] || undefined,
     host: env['PROTON_BRIDGE_HOST'] ?? '127.0.0.1',
-    imapPort: Number(env['PROTON_BRIDGE_IMAP_PORT'] ?? 1143),
-    smtpPort: Number(env['PROTON_BRIDGE_SMTP_PORT'] ?? 1025),
+    imapPort: Number(env['PROTON_BRIDGE_IMAP_PORT'] ?? BRIDGE_IMAP_PORT),
+    smtpPort: Number(env['PROTON_BRIDGE_SMTP_PORT'] ?? BRIDGE_SMTP_PORT),
     from: (env['PROTON_MAIL_FROM'] ?? env['PROTON_BRIDGE_USER'] ?? '').trim(),
     tlsInsecure: (env['PROTON_BRIDGE_TLS_INSECURE'] ?? 'true') === 'true',
     ...(env['PROTON_BRIDGE_CA_PATH']

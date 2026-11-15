@@ -14,6 +14,7 @@ import { execFile, execFileSync } from 'node:child_process'
 import { createConnection } from 'node:net'
 import { ImapFlow } from 'imapflow'
 import type { BridgeConfig } from './config.js'
+import { DIAG_EXEC_TIMEOUT_MS, DIAG_TCP_TIMEOUT_MS } from './constants.js'
 
 export interface TcpDiagnostics {
   reachable: boolean
@@ -49,7 +50,7 @@ export interface MailDiagnostics {
 function measureTcp(
   host: string,
   port: number,
-  timeoutMs = 5000,
+  timeoutMs = DIAG_TCP_TIMEOUT_MS,
 ): Promise<TcpDiagnostics> {
   return new Promise((resolve) => {
     const started = Date.now()
@@ -252,7 +253,7 @@ export async function diagnoseDrive(cliBin: string): Promise<DriveDiagnostics> {
     try {
       const version = execFileSync(cliBin, ['--version'], {
         encoding: 'utf-8',
-        timeout: 5000,
+        timeout: DIAG_EXEC_TIMEOUT_MS,
       }).trim()
       resolve({ ok: true, version })
     } catch (err) {

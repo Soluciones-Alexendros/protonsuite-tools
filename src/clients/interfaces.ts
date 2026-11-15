@@ -13,6 +13,8 @@
  */
 
 import type { EmailSummary, EmailFull, MailboxInfo } from '../imap.js'
+import type { PassAuditResult } from '../pass.js'
+import type { SendOptions, SendResult } from '../smtp.js'
 
 // ---------------------------------------------------------------------------
 // ImapClient
@@ -71,8 +73,6 @@ export interface IImapClient {
 // SmtpClient
 // ---------------------------------------------------------------------------
 
-import type { SendOptions, SendResult } from '../smtp.js'
-
 export interface ISmtpClient {
   send(opts: SendOptions): Promise<SendResult>
   close(): void
@@ -101,8 +101,6 @@ export interface IDriveClient {
 // ---------------------------------------------------------------------------
 // PassClient
 // ---------------------------------------------------------------------------
-
-import type { PassAuditResult } from '../pass.js'
 
 export interface IPassClient {
   get(name: string): Promise<string>

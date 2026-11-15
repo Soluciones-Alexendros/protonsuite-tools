@@ -1,6 +1,7 @@
 import { execFile, type ChildProcess } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import * as net from 'node:net'
+import { BRIDGE_CLI_TIMEOUT, BRIDGE_IMAP_PORT, BRIDGE_SHUTDOWN_TIMEOUT, BRIDGE_SMTP_PORT, BRIDGE_SPAWN_PROMPT_TIMEOUT } from '../constants.js'
 import type { SecretLogger } from '../security.js'
 
 export interface BridgeConfig {
@@ -55,8 +56,6 @@ export interface LoginResult {
   needs2FA?: boolean
 }
 
-const CLI_TIMEOUT = 30_000
-const SPAWN_PROMPT_TIMEOUT = 15_000
 const PROMPT_IDLE_TIMEOUT = 15_000
 
 const KNOWN_PROMPT_MARKERS = [
@@ -141,8 +140,8 @@ export class BridgeClient {
     }
 
     const [imapListening, smtpListening] = await Promise.all([
-      this.checkPort(1143),
-      this.checkPort(1025),
+      this.checkPort(BRIDGE_IMAP_PORT),
+      this.checkPort(BRIDGE_SMTP_PORT),
     ])
 
     const authOk = imapListening ? await this.checkImapAuth() : false
@@ -259,7 +258,7 @@ export class BridgeClient {
     if (this.child && !this.child.killed) return
 
     this.child = execFile(this.bin, ['--cli'], {
-      timeout: SPAWN_PROMPT_TIMEOUT,
+      timeout: BRIDGE_SPAWN_PROMPT_TIMEOUT,
     })
     const child = this.child
 
@@ -268,7 +267,7 @@ export class BridgeClient {
       const timer = setTimeout(() => {
         child.kill()
         reject(new Error('spawn timeout'))
-      }, SPAWN_PROMPT_TIMEOUT)
+      }, BRIDGE_SPAWN_PROMPT_TIMEOUT)
 
       child.stdout?.on('data', (d: string) => {
         out += d
@@ -304,7 +303,7 @@ export class BridgeClient {
       const timer = setTimeout(() => {
         child.kill('SIGTERM')
         resolve()
-      }, 5_000)
+      }, BRIDGE_SHUTDOWN_TIMEOUT)
       child.on('close', () => {
         clearTimeout(timer)
         resolve()
@@ -379,13 +378,13 @@ export class BridgeClient {
         socket.destroy()
         resolve(false)
       })
-      socket.connect(1143, '127.0.0.1')
+      socket.connect(BRIDGE_IMAP_PORT, '127.0.0.1')
     })
   }
 
   private cliCommand(command: string): Promise<string> {
     return new Promise((resolve, reject) => {
-      const child = execFile(this.bin, ['--cli'], { timeout: CLI_TIMEOUT })
+      const child = execFile(this.bin, ['--cli'], { timeout: BRIDGE_CLI_TIMEOUT })
       let out = ''
 
       child.stdout?.on('data', (d: string) => {
@@ -404,7 +403,7 @@ export class BridgeClient {
       setTimeout(() => {
         child.kill()
         reject(new Error('timeout after 30s'))
-      }, CLI_TIMEOUT)
+      }, BRIDGE_CLI_TIMEOUT)
     })
   }
 
@@ -416,7 +415,7 @@ export class BridgeClient {
     ) => void,
   ): Promise<string> {
     return new Promise((resolve, reject) => {
-      const child = execFile(this.bin, ['--cli'], { timeout: CLI_TIMEOUT })
+      const child = execFile(this.bin, ['--cli'], { timeout: BRIDGE_CLI_TIMEOUT })
       let out = ''
       let started = false
       let settled = false
@@ -490,7 +489,7 @@ export class BridgeClient {
         finish(() => {
           reject(new Error('timeout after 30s'))
         })
-      }, CLI_TIMEOUT)
+      }, BRIDGE_CLI_TIMEOUT)
     })
   }
 }
