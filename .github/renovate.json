@@ -5,7 +5,7 @@
   "schedule": ["before 7am"],
   "labels": ["dependencies"],
   "rangeStrategy": "bump",
-  "dependencyDashboard": true,
+  "dependencyDashboard": { "enabled": true },
   "dependencyDashboardApproval": true,
   "minimumReleaseAge": "3 days",
   "internalChecksFilter": "strict",
