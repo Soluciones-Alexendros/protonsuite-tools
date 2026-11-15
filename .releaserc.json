@@ -15,7 +15,7 @@
       "@semantic-release/npm",
       {
         "npmPublish": true,
-        "tarballDir": "dist"
+        "tarballDir": "artifacts"
       }
     ],
     [
@@ -28,7 +28,7 @@
         ],
         "assets": [
           {
-            "path": "dist/*.tgz",
+            "path": "artifacts/*.tgz",
             "label": "npm tarball"
           }
         ]
