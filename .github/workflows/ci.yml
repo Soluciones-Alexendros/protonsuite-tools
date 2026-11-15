@@ -215,3 +215,35 @@ jobs:
           tags: protonsuite-agent:ci
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  # e2e-pass sigue siendo informativo. verify solo repite quality, test, build y smoke.
+  ci-gate:
+    name: ci-gate
+    needs: [quality, test, build, smoke, audit, e2e, docker-build]
+    # No correr si el workflow entero se canceló: evita un ci-gate rojo fantasma.
+    if: always() && !cancelled()
+    permissions: {}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Evaluar needs y hold
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+          ALLOWED_SKIPS: ""
+          HOLD: ${{ github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'hold') }}
+        run: |
+          set -euo pipefail
+          if [[ "${HOLD}" == "true" ]]; then
+            echo "::error::PR con etiqueta hold: ci-gate falla a propósito (quita hold para auto-merge)."
+            exit 1
+          fi
+          if ! command -v jq >/dev/null 2>&1; then
+            sudo apt-get update -qq && sudo apt-get install -y -qq jq
+          fi
+          echo "$NEEDS_JSON" | jq -e --argjson skips "$(printf '%s\n' "${ALLOWED_SKIPS}" | jq -R 'split(" ") | map(select(length>0))')" '
+            to_entries
+            | map(select(.value.result != "success" and ((.key as $k | $skips | index($k)) | not)))
+            | if length == 0 then true else
+                error("ci-gate: jobs no success: " + (map(.key + "=" + .value.result) | join(", ")))
+              end
+          ' >/dev/null
