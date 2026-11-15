@@ -133,6 +133,20 @@ Rules for this list:
 - Exceptions never cover a known loss of secrets or data.
 - Resolve by upgrading. Do **not** lower the gate back to `--audit-level=critical`
   or remove the job.
+
+### OSV scanner (`sca` job)
+
+The `sca` job runs `osv-scanner` against `pnpm-lock.yaml`. It is stricter than
+`pnpm audit`: it flags **every** severity, so its allowlist lives in
+`osv-scanner.toml` rather than in workflow flags. The same rules apply — an
+entry needs a reachability argument, an owner and a review date.
+
+`hono` is **not** allowlisted: it is kept patched via the `hono` override in
+`pnpm-workspace.yaml` (`>=4.13.16`, the first release fixing GHSA-3gg2-335m-rxc6,
+GHSA-46wx-v44x-9hh2, GHSA-4h7h-rv7c-7m2v, GHSA-4m76-xfj5-7975 and
+GHSA-h7mg-cq63-vhpq). It reaches us transitively through
+`@modelcontextprotocol/sdk`, not through our own HTTP stack, but the SDK is a
+runtime dependency and the override costs nothing.
 - Verify with `pnpm install --frozen-lockfile && pnpm audit --prod --audit-level=high`.
 
 ---
