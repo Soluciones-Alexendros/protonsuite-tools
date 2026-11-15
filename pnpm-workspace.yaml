@@ -18,7 +18,9 @@ overrides:
   deepmerge-ts: ">=8.0.0"
   fast-uri: ">=4.1.4"
   handlebars: ">=4.7.10"
-  hono: ">=4.13.7"
+  # GHSA-3gg2-335m-rxc6, GHSA-46wx-v44x-9hh2, GHSA-4h7h-rv7c-7m2v,
+  # GHSA-4m76-xfj5-7975, GHSA-h7mg-cq63-vhpq — todas corregidas en 4.13.16.
+  hono: ">=4.13.16"
   ip-address: ">=10.7.1"
   js-yaml: ">=5.4.1"
   nanoid: ">=3.3.18 <4.0.0"
