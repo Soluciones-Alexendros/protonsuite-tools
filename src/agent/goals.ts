@@ -87,7 +87,7 @@ export interface SuiteStatusReport {
   drive: { available: boolean; reason?: string }
 }
 
-const ALLOWED_GOALS: AgentGoal[] = [
+export const AGENT_GOALS: readonly AgentGoal[] = [
   'discover',
   'setup',
   'check-imap',
@@ -106,9 +106,9 @@ const ALLOWED_GOALS: AgentGoal[] = [
 
 export function parseGoal(value: string | undefined): AgentGoal {
   const g = (value ?? 'setup') as AgentGoal
-  if (!ALLOWED_GOALS.includes(g)) {
+  if (!AGENT_GOALS.includes(g)) {
     throw new Error(
-      `Unknown agent goal: ${value}. Allowed: ${ALLOWED_GOALS.join(', ')}`,
+      `Unknown agent goal: ${value}. Allowed: ${AGENT_GOALS.join(', ')}`,
     )
   }
   return g

@@ -36,7 +36,7 @@ const hoisted = vi.hoisted(() => {
 })
 
 vi.mock('../../src/pass.js', () => ({
-  PassClient: vi.fn(() => hoisted.mockPassClient),
+  createPassClient: vi.fn(() => hoisted.mockPassClient),
 }))
 
 const defaultCfg = {

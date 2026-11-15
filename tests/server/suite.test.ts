@@ -45,7 +45,7 @@ vi.mock('../../src/pass.js', () => {
   MockPassClient.mockImplementation(() => ({
     health: hoisted.mockPassHealth,
   }))
-  return { PassClient: MockPassClient }
+  return { createPassClient: MockPassClient }
 })
 
 // ---------------------------------------------------------------------------

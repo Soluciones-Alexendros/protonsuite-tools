@@ -31,6 +31,7 @@ import {
   DEFAULT_MAX_SESSIONS,
   type Config,
 } from "./config.js";
+import { HTTP_IDLE_SESSION_TIMEOUT_MS, HTTP_RATE_LIMIT_MAX, HTTP_RATE_LIMIT_WINDOW_MS } from "./constants.js";
 import { getToolRateClass } from "./http-tool-rate.js";
 import {
   registry as metricsRegistry,
@@ -127,8 +128,8 @@ export function buildHttpApp(deps: HttpAppDeps): HttpApp {
     "anon";
 
   const readLimiter = rateLimit({
-    windowMs: 60_000,
-    limit: 120,
+    windowMs: HTTP_RATE_LIMIT_WINDOW_MS,
+    limit: HTTP_RATE_LIMIT_MAX,
     standardHeaders: "draft-7",
     legacyHeaders: false,
     keyGenerator: rateKey,
@@ -136,7 +137,7 @@ export function buildHttpApp(deps: HttpAppDeps): HttpApp {
   });
 
   const writeLimiter = rateLimit({
-    windowMs: 60_000,
+    windowMs: HTTP_RATE_LIMIT_WINDOW_MS,
     limit: 30,
     standardHeaders: "draft-7",
     legacyHeaders: false,
@@ -145,7 +146,7 @@ export function buildHttpApp(deps: HttpAppDeps): HttpApp {
   });
 
   const auditLimiter = rateLimit({
-    windowMs: 60_000,
+    windowMs: HTTP_RATE_LIMIT_WINDOW_MS,
     limit: 5,
     standardHeaders: "draft-7",
     legacyHeaders: false,
@@ -217,7 +218,7 @@ export function buildHttpApp(deps: HttpAppDeps): HttpApp {
    * (hallazgo F20). Este va por IP y se gasta pase lo que pase.
    */
   const preAuthLimiter = rateLimit({
-    windowMs: 60_000,
+    windowMs: HTTP_RATE_LIMIT_WINDOW_MS,
     limit: 300,
     standardHeaders: "draft-7",
     legacyHeaders: false,
@@ -350,7 +351,7 @@ export function buildHttpApp(deps: HttpAppDeps): HttpApp {
   // al cerrar).
   const evictionTimer = setInterval(() => {
     const now = Date.now();
-    const idleTimeout = 30 * 60 * 1000;
+    const idleTimeout = HTTP_IDLE_SESSION_TIMEOUT_MS;
     for (const [id, entry] of sessions) {
       if (now - entry.lastUsed > idleTimeout) {
         entry.transport.close().catch(() => { /* noop */ });

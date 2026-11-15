@@ -1,4 +1,5 @@
 import { execFileSync } from 'node:child_process'
+import { ECO_VERSION_TIMEOUT_MS } from '../constants.js'
 import type { BinaryInfo } from './binaries.js'
 import { checkBinary } from './discovery.js'
 
@@ -58,13 +59,13 @@ function fetchLatestVersion(bin: BinaryInfo): string | undefined {
 
 function getPackageManager(): string {
   try {
-    execFileSync('apt', ['--version'], { encoding: 'utf-8', timeout: 3000 })
+    execFileSync('apt', ['--version'], { encoding: 'utf-8', timeout: ECO_VERSION_TIMEOUT_MS })
     return 'apt'
   } catch {
     // fallback
   }
   try {
-    execFileSync('pacman', ['--version'], { encoding: 'utf-8', timeout: 3000 })
+    execFileSync('pacman', ['--version'], { encoding: 'utf-8', timeout: ECO_VERSION_TIMEOUT_MS })
     return 'pacman'
   } catch {
     // fallback

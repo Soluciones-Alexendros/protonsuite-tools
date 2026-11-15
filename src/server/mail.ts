@@ -3,6 +3,7 @@ import { z } from 'zod'
 import type { IImapClient } from '../clients/interfaces.js'
 import type { ISmtpClient } from '../clients/interfaces.js'
 import type { createLogger, Config } from '../config.js'
+import { ATTACH_INLINE_THRESHOLD, ATTACH_MAX_SIZE } from '../constants.js'
 import { buildForwardOptions, buildReplyOptions } from '../smtp.js'
 import {
   attachmentSchema,
@@ -408,8 +409,8 @@ function registerReadTools(server: McpServer, deps: MailDeps) {
           .number()
           .int()
           .positive()
-          .max(50 * 1024 * 1024)
-          .default(10 * 1024 * 1024)
+          .max(ATTACH_MAX_SIZE)
+          .default(ATTACH_INLINE_THRESHOLD)
           .describe(
             'Maximum attachment size in bytes (default 10 MB, hard cap 50 MB)',
           ),

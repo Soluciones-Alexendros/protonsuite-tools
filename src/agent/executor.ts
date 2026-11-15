@@ -151,14 +151,8 @@ const goalHandlers: Record<string, GoalHandler> = {
       log.error('Proton Pass is not enabled. Set PROTON_PASS_ENABLED=true.')
       process.exit(2)
     }
-    const { PassClient } = await import('../pass.js')
-    const passClient = new PassClient(
-      {
-        storeDir: cfg.products.pass.storeDir,
-        backend: cfg.products.pass.backend ?? 'pass',
-      },
-      log,
-    )
+    const { createPassClient } = await import('../pass.js')
+    const passClient = createPassClient(cfg.products.pass, log)
     const report = await passClient.audit()
     log.info('pass-audit report', {
       storeOk: report.storeOk,

@@ -1,10 +1,10 @@
 import { resolve } from 'node:path'
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { z } from 'zod'
+import type { IDriveClient } from '../clients/interfaces.js'
 import type { createLogger, Config } from '../config.js'
 import { applyOrganizePlan, DriveAuditor } from '../drive-audit.js'
 import { withDrivePathLock } from '../drive-mutex.js'
-import type { DriveClient } from '../drive.js'
 import { WorkspacePolicy, WorkspaceViolation } from '../workspace.js'
 import { asStructured } from './structured-content.js'
 
@@ -13,12 +13,12 @@ type Logger = ReturnType<typeof createLogger>
 interface DriveDeps {
   cfg: Config
   log: Logger
-  driveClient: DriveClient
+  driveClient: IDriveClient
 }
 
 export function registerDriveTools(
   server: McpServer,
-  deps: { cfg: Config; log: Logger; driveClient: DriveClient | undefined },
+  deps: { cfg: Config; log: Logger; driveClient: IDriveClient | undefined },
 ) {
   const { cfg, log, driveClient } = deps
   if (!cfg.products.drive.enabled || !driveClient) return

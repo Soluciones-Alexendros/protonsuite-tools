@@ -19,16 +19,13 @@
  *   1 = runtime error
  *   2 = invalid arguments / configuration
  */
+import { AGENT_GOALS } from './agent/goals.js';
 import { runAgent, parseGoal, describeGoal } from "./agent/index.js";
 import { ApprovalStore, runApprovalCommand } from './authz/index.js';
 import { approvalDirFromEnv } from './config.js';
 import { VERSION } from "./version.js";
 
-const GOALS = [
-  'discover', 'setup', 'check-imap', 'organize', 'monitor', 'alert',
-  'pass-audit', 'suite-status', 'suite-manage',
-  'drive-audit', 'drive-organize', 'drive-list', 'drive-download', 'drive-upload',
-] as const;
+const GOALS = AGENT_GOALS;
 
 function showHelp(): void {
   process.stdout.write(`Proton Suite Agent v${VERSION}

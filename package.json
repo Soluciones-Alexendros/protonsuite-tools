@@ -53,6 +53,7 @@
     "document-management"
   ],
   "scripts": {
+    "prebuild": "node scripts/sync-version.mjs",
     "build": "tsc && pnpm --filter @alexendros/protonsuite-web run build",
     "start": "node dist/index.js",
     "dev": "tsc --watch",
@@ -86,6 +87,8 @@
     "lint:fix": "eslint src/ --fix",
     "knip": "knip --no-exit-code",
     "validate:renovate": "node scripts/validate-renovate.mjs",
+    "version:sync": "node scripts/sync-version.mjs",
+    "prepack": "node scripts/sync-version.mjs && tsc",
     "prepare": "husky"
   },
   "dependencies": {

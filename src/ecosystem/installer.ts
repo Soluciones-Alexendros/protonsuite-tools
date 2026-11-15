@@ -1,4 +1,5 @@
 import { execFileSync } from 'node:child_process'
+import { ECO_APT_INSTALL_TIMEOUT_MS } from '../constants.js'
 import { Platform, Codename } from '../which.js'
 import type { BinaryInfo, InstallationGuide } from './binaries.js'
 import { installationGuide } from './binaries.js'
@@ -47,7 +48,7 @@ function runApt(args: string[]): InstallResult {
   try {
     execFileSync('sudo', ['apt', ...args, '-y'], {
       encoding: 'utf-8',
-      timeout: 120_000,
+      timeout: ECO_APT_INSTALL_TIMEOUT_MS,
     })
     return {
       product: args[args.length - 1] ?? 'package',

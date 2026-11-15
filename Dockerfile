@@ -8,7 +8,10 @@ ENV HUSKY=0
 RUN pnpm install --frozen-lockfile
 COPY tsconfig.json ./
 COPY src ./src
-RUN pnpm run build
+# Solo el agente: `tsc` compila src → dist. No se corre `pnpm run build`
+# (que además construiría la SPA de apps/web, no incluida en la imagen) ni
+# `prebuild` (regenera src/version.ts, ya quemado y commitado).
+RUN pnpm exec tsc
 
 # ---- Runtime ----
 FROM node:22-alpine@sha256:fe4f6d74e20370acb04ad889077d14d0f64a9c8ea6a42bc60cddf1e844699914 AS runtime

@@ -23,7 +23,7 @@ vi.mock("../../src/smtp.js", () => ({
   buildForwardOptions: vi.fn(),
 }));
 vi.mock("../../src/pass.js", () => ({
-  PassClient: vi.fn().mockImplementation(() => ({})),
+  createPassClient: vi.fn().mockImplementation(() => ({})),
 }));
 vi.mock("../../src/drive.js", () => ({
   DriveClient: vi.fn().mockImplementation(() => ({})),

@@ -1,3 +1,4 @@
+import { ALERT_THREAT_CONFIDENCE_FACTOR } from "../constants.js";
 import type { AlertSeverity } from "./types.js";
 
 export interface ClassificationResult {
@@ -206,7 +207,7 @@ export function detectThreats(input: { from?: string; subject?: string; text?: s
       threats.push({
         threat: check.threat,
         severity: check.severity,
-        confidence: Math.min(1, indicators.length * 0.4 + 0.4),
+        confidence: Math.min(1, indicators.length * ALERT_THREAT_CONFIDENCE_FACTOR + 0.4),
         indicators,
       });
     }

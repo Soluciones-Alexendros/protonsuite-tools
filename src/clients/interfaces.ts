@@ -13,6 +13,8 @@
  */
 
 import type { EmailSummary, EmailFull, MailboxInfo } from '../imap.js'
+import type { PassAuditResult } from '../pass.js'
+import type { SendOptions, SendResult } from '../smtp.js'
 
 // ---------------------------------------------------------------------------
 // ImapClient
@@ -71,8 +73,6 @@ export interface IImapClient {
 // SmtpClient
 // ---------------------------------------------------------------------------
 
-import type { SendOptions, SendResult } from '../smtp.js'
-
 export interface ISmtpClient {
   send(opts: SendOptions): Promise<SendResult>
   close(): void
@@ -102,73 +102,9 @@ export interface IDriveClient {
 // PassClient
 // ---------------------------------------------------------------------------
 
-import type { PassAuditResult } from '../pass.js'
-
 export interface IPassClient {
   get(name: string): Promise<string>
   list(subdir?: string): Promise<string[]>
   audit(): Promise<PassAuditResult>
   health(): Promise<{ ok: boolean; entries: number; error?: string }>
-}
-
-// ---------------------------------------------------------------------------
-// CalendarClient (CalDAV / iCalendar — RFC 4791 / RFC 5545)
-// ---------------------------------------------------------------------------
-
-/**
- * CalDAV/ical port.
- *
- * Estado: **BLOQUEADO / seam forward-looking**. Proton Calendar usa sync
- * E2E-encrypted y Proton Mail Bridge aún no expone CalDAV (ver ADR-005). Esta
- * interfaz existe como *seam* anticipada: cuando Bridge añada CalDAV, una
- * implementación CalDAV concreta satisface este contrato sin tocar los
- * consumers. Mientras tanto la capa de tools sigue siendo el *stub* de
- * `src/server/calendar.ts`.
- *
- * Los tipos de valor (`CalendarEvent`, `CalendarListEntry`) son modelos
- * genéricos; se reemplazarán por una lib iCalendar (p. ej. `ical.js` style)
- * cuando exista la implementación. `close()` sigue el patrón de `IImapClient`.
- */
-export interface CalendarObject {
-  uid: string;
-  etag?: string;
-  lastModified?: string;
-  summary?: string;
-}
-
-export interface CalendarEvent extends CalendarObject {
-  start: string;
-  end?: string;
-  allDay?: boolean;
-  location?: string;
-  description?: string;
-  attendees?: string[];
-}
-
-export interface CalendarListEntry {
-  id: string;
-  name: string;
-  color?: string;
-  readOnly?: boolean;
-  supportedComponents?: string[];
-}
-
-export interface ListEventsOptions {
-  calendarId: string;
-  start?: string;
-  end?: string;
-  /** CalDAV `CALDAV:filter` (component, prop-filters, time-range). */
-  filter?: Record<string, unknown>;
-}
-
-export interface CreateEventOptions {
-  calendarId: string;
-  event: Omit<CalendarEvent, "uid"> & { uid?: string };
-}
-
-export interface ICalendarAdapter {
-  listCalendars(): Promise<CalendarListEntry[]>;
-  listEvents(opts: ListEventsOptions): Promise<CalendarEvent[]>;
-  createEvent(opts: CreateEventOptions): Promise<CalendarEvent>;
-  close(): Promise<void>;
 }

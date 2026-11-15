@@ -13,6 +13,7 @@
 import { execFile, execFileSync } from 'node:child_process'
 import { existsSync, mkdirSync } from 'node:fs'
 import { resolve } from 'node:path'
+import type { IDriveClient } from './clients/interfaces.js'
 import { DRIVE_EXEC_MAX_BUFFER } from './constants.js'
 import { withDrivePathLocks } from './drive-mutex.js'
 import { countFiles } from './drive-utils.js'
@@ -70,7 +71,7 @@ export interface DriveStatus {
   error?: string
 }
 
-export class DriveClient {
+export class DriveClient implements IDriveClient {
   constructor(
     public opts: DriveConfig,
     private log: {

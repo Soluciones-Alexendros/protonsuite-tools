@@ -17,7 +17,7 @@ const { passGet, bridgeLogin } = vi.hoisted(() => ({
 }))
 
 vi.mock('../../src/pass.js', () => ({
-  PassClient: vi.fn().mockImplementation(() => ({ get: passGet })),
+  createPassClient: vi.fn().mockImplementation(() => ({ get: passGet })),
 }))
 vi.mock('../../src/bridge/bridge-client.js', () => ({
   BridgeClient: vi.fn().mockImplementation(() => ({

@@ -149,7 +149,7 @@ vi.mock('../src/agent/organizer.js', () => ({
 }))
 
 vi.mock('../src/pass.js', () => ({
-  PassClient: vi.fn().mockImplementation(() => mockPassClientFns),
+  createPassClient: vi.fn().mockImplementation(() => mockPassClientFns),
 }))
 
 vi.mock('../src/drive.js', () => ({

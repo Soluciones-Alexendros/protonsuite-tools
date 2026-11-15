@@ -19,6 +19,7 @@ import { randomBytes, createHash } from 'node:crypto'
 import { readdir, stat, copyFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { join as joinPath, resolve as resolvePath } from 'node:path'
+import type { IPassClient } from './clients/interfaces.js'
 import { runProcess } from './process-runner.js'
 
 export type PassBackend = 'pass' | 'gopass'
@@ -83,7 +84,7 @@ export interface PassAuditResult {
   [key: string]: unknown
 }
 
-export class PassClient {
+export class PassClient implements IPassClient {
   private readonly storeDir: string
   private readonly binary: string
   private readonly staleAfterMs: number
@@ -457,6 +458,27 @@ export class PassClient {
   private simpleHash(s: string): string {
     return createHash('sha256').update(s).digest('hex').slice(0, 16)
   }
+}
+
+/**
+ * Fábrica canónica de `PassClient`.
+ *
+ * Antes cada llamador repetía el mismo objeto `{ storeDir, backend ?? 'pass' }`
+ * en seis sitios (server.ts ×3, config.ts, server/pass.ts, agent/executor.ts).
+ * Centralizar aquí evita que un backend nuevo o un default distinto se olvide
+ * de aplicar en alguno de ellos.
+ */
+export function createPassClient(
+  cfg: { storeDir: string; backend?: PassBackend | undefined },
+  log: PassLogger,
+): PassClient {
+  return new PassClient(
+    {
+      storeDir: cfg.storeDir,
+      backend: cfg.backend ?? 'pass',
+    },
+    log,
+  )
 }
 
 export class PassError extends Error {

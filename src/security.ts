@@ -12,6 +12,9 @@
  *  2. Dentro de un texto libre (una URL con `?token=…`, una cabecera Bearer, una
  *     cadena base64 larga que viene de un `get`).
  */
+
+import { SEC_MIN_SANITIZE_LENGTH } from './constants.js'
+
 const SAFE_PATH_RE = /^[a-zA-Z0-9._/-]+$/
 
 /** Nombres de campo cuyo VALOR nunca debe salir. */
@@ -73,7 +76,7 @@ export const SecretSafety = {
   /** Representación corta y no reversible de un valor. */
   sanitizeForLog(value: unknown): string {
     if (typeof value === 'string') {
-      if (value.length <= 4) return '***'
+      if (value.length <= SEC_MIN_SANITIZE_LENGTH) return '***'
       return value.slice(0, 2) + '***' + value.slice(-2)
     }
     return '***'
